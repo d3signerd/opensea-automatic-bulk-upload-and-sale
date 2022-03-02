@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+data/converted_all.json
+data/converted_sell.json
+data/converted_upload.json
