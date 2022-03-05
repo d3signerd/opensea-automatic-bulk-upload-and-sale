@@ -130,3 +130,7 @@ dmypy.json
 data/converted_all.json
 data/converted_sell.json
 data/converted_upload.json
+assets/coin_password.txt
+assets/coin_recovery_phrase.txt
+assets/meta_password.txt
+assets/meta_recovery_phrase.txt
