@@ -1,0 +1,228 @@
+{
+  "nft": [
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273877688262328321",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273880986797211649",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273879887285583873",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273882086308839425",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273883185820467201",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273884285332094977",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273885384843722753",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273886484355350529",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273887583866978305",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273888683378606081",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273889782890233857",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273890882401861633",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273891981913489409",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273893081425117185",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273894180936744961",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    },
+    {
+      "nft_url": "https://opensea.io/assets/0x495f947276749ce646f68ac8c248420045cb7b5e/18722642063214773052479870521080181740922799428205029213054273895280448372737",
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.015,
+      "method": [
+        "Sell with declining price",
+        0.012
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1
+    }
+  ]
+}

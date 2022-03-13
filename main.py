@@ -32,6 +32,7 @@ from selenium.webdriver.common.by import By
 from datetime import datetime as dt
 from glob import glob
 import os
+import time
 
 
 """Colorama module constants."""
@@ -85,16 +86,26 @@ class Structure:
     """Structure JSON/CSV/XLSX data lists or dictionnaries."""
 
     def __init__(self, action: list) -> None:
-        """Make a copy of the readed file and its extension."""
+        """Make a copy of the read file and its extension."""
         self.file = reader.file.copy()  # File data copy.
         self.extension = reader.extension  # File extension copy.
         self.action = action  # 1, 2 or 1 and 2.
-        if 1 in self.action and 2 not in self.action:
-            from uuid import uuid4  # A Python default import.
-            self.save_file = f'data/{str(uuid4())[:8]}.csv'
-            with open(self.save_file, 'a+', encoding='utf-8') as file:
-                file.write('nft_url;; supply;; blockchain;; type;; price;; '
-                           'method;; duration;; specific_buyer;; quantity')
+        self.completed = []
+
+        if 1 in self.action and 2 not in self.action and 3 not in self.action:
+            # Construct the save file
+            file_path = os.path.splitext(reader.path)[0]
+            # extension = os.path.splitext(reader.path)[1][1:].lower()
+            self.save_file = f'{file_path}_uploaded.csv'
+            
+            if not os.path.exists(self.save_file):
+                with open(self.save_file, 'a+', encoding='utf-8') as file:
+                    file.write('nft_url;; supply;; blockchain;; type;; price;; '
+                               'method;; duration;; specific_buyer;; quantity;; name')
+            else:
+                items = Reader(self.save_file).file
+                self.completed = list(map(lambda item: str(item.split(';; ')[8]), items))
+                print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads.')
 
     def get_data(self, nft_number: int) -> None:
         """Get NFT's data."""
@@ -190,13 +201,14 @@ class Structure:
             return False
         return True
 
-    def save_nft(self, url) -> None:
+    def save_nft(self, url, name) -> None:
         """Save the NFT URL, Blockchain and supply number in a file."""
         # Note: only CSV file will be created.
         with open(self.save_file, 'a+', encoding='utf-8') as file:
             file.write(f'\n{url};; {self.supply};; {self.blockchain};;'
-                       ' ;; ;; ;; ;; ;;')  # Complete data manually.
-        print(f'{green}Data saved in {self.save_file}')
+                       f' ;; ;; ;; ;; ;; {name}')  # Complete data manually.
+        print(f'{green}| Data saved!')
+        # Save completed
 
 
 class Webdriver:
@@ -345,8 +357,30 @@ class OpenSea:
             print(f'{red}Login to MetaMask failed, retrying...')
             self.metamask_login()
 
+    def sign_contract(self) -> None:
+        """Sign a Wallet contract to login to OpenSea."""
+        if wallet == 0: self.coinbase_contract()
+        else: self.metamask_contract()
+
+    def coinbase_contract(self) -> None:
+        """Sign a Coinbase contract to login to OpenSea."""
+        # Switch to the Coinbase pop up tab.
+        web.window_handles(2)
+        # Click on the "Sign" button - Make a contract link.
+        web.clickable('//*[@data-testid="sign-message"]')
+        try:  # Wait until the Coinbase pop up is closed.
+            WDW(web.driver, 10).until(EC.number_of_windows_to_be(2))
+        except TE:
+            self.coinbase_contract()  # Sign the contract a second time.
+        web.window_handles(1)  # Switch back to the OpenSea tab.
+
     def metamask_contract(self) -> None:
         """Sign a MetaMask contract to login to OpenSea."""
+        if structure.blockchain == 'Polygon':
+            web.clickable('//div[@data-testid="Panel"][last()]/div/div'
+                          '/div/div/button')  # "Sign" button.
+
+        web.window_handles(2)  # Switch to the MetaMask pop up tab.
         # Click on the "Sign" button - Make a contract link.
         web.clickable('//*[contains(@class, "button btn-secondary")]')
         try:  # Wait until the MetaMask pop up is closed.
@@ -365,13 +399,13 @@ class OpenSea:
             # Click on the "Connect" button.
             web.clickable('//*[@data-testid="allow-authorize-button"]')
             # Switch to the new Wallet pop up tab.
-            WDW(web.driver, 5)
+            # WDW(web.driver, 5)
             web.window_handles(3)
             # Cick on the "Sign" button.
             web.clickable('//*[@data-testid="sign-message"]')
 
         except Exception:  #Could not start the wallet
-            print(f'{red}Starting the wallet failed. Retrying.')
+            print(f'{red}Starting the Coinbase wallet failed. Retrying.')
             web.window_handles(1)  # Switch to the main (data:,) tab.
             web.driver.refresh()  # Reload the page (is the login failed?).
             self.opensea_login()  # Retry everything.
@@ -419,7 +453,7 @@ class OpenSea:
             try:
                 web.window_handles(1)  # Switch back to the OpenSea tab.
                 web.window_handles(2)  # Switch to the MetaMask pop up tab.
-                self.metamask_contract()  # Sign the contract.
+                self.sign_contract()  # Sign the contract.
                 # Check if the login worked.
                 WDW(web.driver, 15).until(EC.url_to_be(self.create_url))
                 print(f'{green}Logged to OpenSea.\n')
@@ -429,9 +463,35 @@ class OpenSea:
                 web.driver.refresh()  # Reload the page (is the login failed?).
                 self.opensea_login()  # Retry everything.
 
+
+    def check_for_captcha(self) -> None:
+        # Check to wait for captcha
+        if web.visible('//h4[contains(text(), "Almost done")]'):
+
+            # Look for the captcha ifrmae and switch to it
+            try:
+                time.sleep(2)
+                iframes = web.driver.find_elements(by=By.TAG_NAME, value="iframe")
+                web.driver.switch_to.frame(iframes[0])
+                # print('Found iframe and switched to it')
+            except Exception:
+                print('| Could not find the captcha iframe')
+
+            # Try to click the anchor
+            try:
+                web.clickable('//*[@id="recaptcha-anchor"]/div[1]')
+                # print('Found anchor and clicked it')
+            except Exception:
+                print('| Could not find the anchor')
+
+            # Solve the captcha
+            print('| Captcha found, solve and press enter', end=' ')
+            wait_response = str(input())
+
+
     def opensea_upload(self, number: int) -> bool:
         """Upload multiple NFTs automatically on OpenSea."""
-        print(f'Uploading NFT n°{number}/{reader.lenght_file}.', end=' ')
+        print(f'\nUploading NFT n°{number}/{reader.lenght_file}.')
         try:  # Go to the OpenSea create URL and input all datas of the NFT.
             web.driver.get(self.create_url + '?enable_supply=true')
             if isinstance(structure.file_path, list):
@@ -536,10 +596,14 @@ class OpenSea:
                 structure.blockchain = 'Ethereum'
             web.clickable('(//div[contains(@class, "submit")])'  # Click on the
                           '[position()=1]/div/span/button')  # "Create" button.
+            # Check for captchas
+            self.check_for_captcha()
+
+            # Verify upload
             WDW(web.driver, 60).until(lambda _: web.driver.current_url != self.create_url + '?enable_supply=true')
-            print(f'{green}NFT uploaded.{reset}')
+            print(f'{green}| Uploaded.{reset}')
             if 2 not in structure.action:  # Save the data for future upload.
-                structure.save_nft(web.driver.current_url)
+                structure.save_nft(web.driver.current_url, structure.nft_name)
             return True  # If it perfectly worked.
         except Exception as error:  # An element is not reachable.
             print(f'{red}An error occured. {error}')
@@ -547,7 +611,7 @@ class OpenSea:
 
     def opensea_sale(self, number: int, date: str = '%d-%m-%Y %H:%M') -> None:
         """Set a price for the NFT and sell it."""
-        print(f'Sale of the NFT n°{number}/{len(structure.file)}.', end=' ')
+        print(f'\nSale of the NFT n°{number}/{len(structure.file)}.', end=' ')
         try:  # Try to sell the NFT with different types and methods.
             if 2 in structure.action and 1 not in structure.action:
                 web.driver.get(structure.nft_url + '/sell')  # NFT sale page.
@@ -666,11 +730,7 @@ class OpenSea:
                 raise TE('The submit button cannot be clicked.')
 
             try:  # Polygon blockchain requires a click on a button.
-                if structure.blockchain == 'Polygon':
-                    web.clickable('//div[@data-testid="Panel"][last()]/div/div'
-                                  '/div/div/button')  # "Sign" button.
-                web.window_handles(2)  # Switch to the MetaMask pop up tab.
-                self.metamask_contract()  # Sign the contract.
+                self.sign_contract() # Sign the contract.
             except Exception:  # No deposit or an unknown error occured.
                 raise TE('You need to make a deposit before proceeding'
                          ' to listing of your NFTs.')
@@ -685,19 +745,29 @@ class OpenSea:
 
     def opensea_remove(self, number: int) -> None:
         """Remove the NFT"""
-        print(f'Deleting NFT n°{number}/{len(structure.file)}.', end=' ')
+        print(f'\nDeleting NFT n°{number}/{len(structure.file)}.')
+        
+        web.driver.get(structure.nft_url)  # Edit url
         try:  # Try to delete the NFT.
-            web.driver.get(structure.nft_url)  # Edit url
+            edit_button = '//a[contains(text(), "Edit")]' # The edit element
+
+            # Check for NFT
+            try:
+                WDW(web.driver, 2).until(EC.visibility_of_element_located((By.XPATH, edit_button)))
+            except Exception:  # An error occured while looking for edit
+                raise TE('-NFT does not exist or did not load')
+
             # web.driver.refresh()  # Reload the page to prevent a blank page.
-            web.clickable('//a[contains(text(), "Edit")]')  # Click Edit.
+            web.clickable(edit_button)  # Click Edit.
             web.clickable('//button[contains(text(), "Delete item")]')  # Click Delete Item.
             web.visible('//*[contains(text(), "Are you sure you want to delete this item? ")]')
             web.clickable('//div[@class="Overlayreact__Overlay-sc-1yn7g51-0 ebMEfa"]/div/div/footer/div/button')
             web.visible('//span[contains(text(), "Deleted! Changes will take a minute to reflect.")]')  # Wait for deletion.
-            print('Deleted.')
+            print('| Deleted.')
 
         except Exception as error: # Faled, an error has occured
-            print(f'{red}Counld not remove the NFT. {error}')
+            print(f'{red}| Counld not remove the NFT. {error}')
+
 
 def read_file(file_: str, question: str) -> str:
     """Read file or ask for data to write in text file."""
@@ -788,7 +858,7 @@ if __name__ == '__main__':
 
     cls()  # Clear console.
 
-    print(f'{green}Time to upload them NTFs\n')
+    print(f'{green}Time to upload/sell/delete them NTFs\n')
 
     input('\nPRESS [ENTER] TO CONTINUE. ')
     cls()  # Clear console.
@@ -801,31 +871,40 @@ if __name__ == '__main__':
     # Init the OpenSea class and send the password and the recovery phrase.
     login_prefix = ('meta', 'coin')[wallet == 0]
     wallet_name = ("MetaMask", 'Coinbase')[wallet == 0]
+
+    # Setup
     opensea = OpenSea(wallet,
         read_file('{}_password'.format(login_prefix), '\nWhat is your {} password? '.format(wallet_name)), 
         read_file('{}_recovery_phrase'.format(login_prefix), '\nWhat is your {} recovery phrase? '.format(wallet_name)))
-
     action = perform_action()  # What the user wants to do.
     reader = Reader(data_file())  # Ask for a file and read it.
     structure = Structure(action) 
     web = Webdriver(wallet)  # Start a new webdriver and init its methods.
+
+    # Start Opensea
     opensea.wallet_login()  # Log into wallets.
     opensea.opensea_login()  # Connect to OpenSea.
 
     for nft_number in range(reader.lenght_file):
         structure.get_data(nft_number)  # Structure the data of the NFT.
-        upload = None  # Prevent Undefined value error.
-        if 1 in action:  # 1 = Upload. If user wants to upload the NFT.
-            upload = opensea.opensea_upload(nft_number + 1)  # Upload the NFT.
-        if 2 in action:  # 2 - Sale. If user wants to sell the NFT.
-            if 1 in action and not upload:  # Do not upload the NFT because of
-                continue  # a user choice or a failure of the upload.
-            elif isinstance(structure.price, int) or \
-                    isinstance(structure.price, float):
-                if structure.price > 0:  # If price has been defined.
-                    opensea.opensea_sale(nft_number + 1)  # Sell NFT.
-        if 3 in action:  # 4 - Delete.  Delete NFTS from Opensea.
-            opensea.opensea_remove(nft_number + 1)  # Remove the NFT
+
+        # Move on to the next NFT if it has alraedy been completed
+        if 1 in action and structure.nft_name in structure.completed:
+            print(f'NFT n°{nft_number} has alraedy been uploaded.')
+        else:
+            upload = None  # Prevent Undefined value error.
+            if 1 in action:  # 1 = Upload. If user wants to upload the NFT.
+                upload = opensea.opensea_upload(nft_number + 1)  # Upload the NFT.
+            if 2 in action:  # 2 - Sale. If user wants to sell the NFT.
+                if 1 in action and not upload:  # Do not upload the NFT because of
+                    continue  # a user choice or a failure of the upload.
+                elif isinstance(structure.price, int) or \
+                        isinstance(structure.price, float):
+                    if structure.price > 0:  # If price has been defined.
+                        opensea.opensea_sale(nft_number + 1)  # Sell NFT.
+            if 3 in action:  # 4 - Delete.  Delete NFTS from Opensea.
+                opensea.opensea_remove(nft_number + 1)  # Remove the NFT
+
 
     web.driver.quit()  # Stop the webdriver.
     print(f'\n{green}All done! Your NFTs have been taken care of.')
