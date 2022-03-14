@@ -1,0 +1,288 @@
+{
+  "nft": [
+    {
+      "file_path": "/Users/kellen/Documents/NFT/NFT Generator/build/images/4.png",
+      "nft_name": "Joysicle #4",
+      "external_link": "",
+      "description": "Hello there! I am a chilled flavorful popsicle of the NFT (nifty) Joysicles. -A fun loving frozen flavor on a stick who loves long dips in the freezer followed by long hot summer days in the shade.\n\nCome Collect them all before they melt!",
+      "collection": "Joysicles Collection",
+      "properties": [
+        {
+          "type": "Background",
+          "name": "Blue"
+        },
+        {
+          "type": "Body",
+          "name": "Square"
+        },
+        {
+          "type": "Stick",
+          "name": "Plain"
+        },
+        {
+          "type": "Flavor",
+          "name": "Blue Raspberry"
+        },
+        {
+          "type": "Body",
+          "name": "Seeds"
+        },
+        {
+          "type": "Dimples",
+          "name": "Shy"
+        },
+        {
+          "type": "Bottom",
+          "name": "Lined"
+        },
+        {
+          "type": "Freckles",
+          "name": "None"
+        },
+        {
+          "type": "Mood",
+          "name": "Excited"
+        },
+        {
+          "type": "Eyes",
+          "name": "Wink"
+        },
+        {
+          "type": "Mouth",
+          "name": "Folded"
+        }
+      ],
+      "levels": "",
+      "stats": "",
+      "unlockable_content": false,
+      "explicit_and_sensitive_content": false,
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.01,
+      "method": [
+        "Sell to highest bidder",
+        0.001
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1,
+      "nft_url": ""
+    },
+    {
+      "file_path": "/Users/kellen/Documents/NFT/NFT Generator/build/images/2.png",
+      "nft_name": "Joysicle #2",
+      "external_link": "",
+      "description": "Hello there! I am a chilled flavorful popsicle of the NFT (nifty) Joysicles. -A fun loving frozen flavor on a stick who loves long dips in the freezer followed by long hot summer days in the shade.\n\nCome Collect them all before they melt!",
+      "collection": "Joysicles Collection",
+      "properties": [
+        {
+          "type": "Background",
+          "name": "Red"
+        },
+        {
+          "type": "Body",
+          "name": "Square"
+        },
+        {
+          "type": "Stick",
+          "name": "Plain"
+        },
+        {
+          "type": "Flavor",
+          "name": "Neapolitan"
+        },
+        {
+          "type": "Dimples",
+          "name": "Under Eyes"
+        },
+        {
+          "type": "Top",
+          "name": "Lined"
+        },
+        {
+          "type": "Freckles",
+          "name": "None"
+        },
+        {
+          "type": "Mood",
+          "name": "Happy"
+        },
+        {
+          "type": "Eyes",
+          "name": "Squint"
+        },
+        {
+          "type": "Mouth",
+          "name": "Smile"
+        }
+      ],
+      "levels": "",
+      "stats": "",
+      "unlockable_content": false,
+      "explicit_and_sensitive_content": false,
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.01,
+      "method": [
+        "Sell to highest bidder",
+        0.001
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1,
+      "nft_url": ""
+    },
+    {
+      "file_path": "/Users/kellen/Documents/NFT/NFT Generator/build/images/3.png",
+      "nft_name": "Joysicle #3",
+      "external_link": "",
+      "description": "Hello there! I am a chilled flavorful popsicle of the NFT (nifty) Joysicles. -A fun loving frozen flavor on a stick who loves long dips in the freezer followed by long hot summer days in the shade.\n\nCome Collect them all before they melt!",
+      "collection": "Joysicles Collection",
+      "properties": [
+        {
+          "type": "Background",
+          "name": "Light Blue"
+        },
+        {
+          "type": "Body",
+          "name": "Angled"
+        },
+        {
+          "type": "Stick",
+          "name": "Rainbow"
+        },
+        {
+          "type": "Flavor",
+          "name": "Blue Raspberry"
+        },
+        {
+          "type": "Body",
+          "name": "Seeds"
+        },
+        {
+          "type": "Dimples",
+          "name": "Under Eyes"
+        },
+        {
+          "type": "Top",
+          "name": "Filled"
+        },
+        {
+          "type": "Freckles",
+          "name": "None"
+        },
+        {
+          "type": "Mood",
+          "name": "Love"
+        },
+        {
+          "type": "Mouth",
+          "name": "Folded"
+        },
+        {
+          "type": "Eyes",
+          "name": "Heart"
+        },
+        {
+          "type": "Eyes",
+          "name": "Lashes"
+        },
+        {
+          "type": "Eyes",
+          "name": "Wink"
+        }
+      ],
+      "levels": "",
+      "stats": "",
+      "unlockable_content": false,
+      "explicit_and_sensitive_content": false,
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.01,
+      "method": [
+        "Sell to highest bidder",
+        0.001
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1,
+      "nft_url": ""
+    },
+    {
+      "file_path": "/Users/kellen/Documents/NFT/NFT Generator/build/images/1.png",
+      "nft_name": "Joysicle #1",
+      "external_link": "",
+      "description": "Hello there! I am a chilled flavorful popsicle of the NFT (nifty) Joysicles. -A fun loving frozen flavor on a stick who loves long dips in the freezer followed by long hot summer days in the shade.\n\nCome Collect them all before they melt!",
+      "collection": "Joysicles Collection",
+      "properties": [
+        {
+          "type": "Background",
+          "name": "Brown"
+        },
+        {
+          "type": "Body",
+          "name": "Angled"
+        },
+        {
+          "type": "Stick",
+          "name": "Rainbow Left"
+        },
+        {
+          "type": "Flavor",
+          "name": "Neapolitan"
+        },
+        {
+          "type": "Dimples",
+          "name": "Cheek Bones"
+        },
+        {
+          "type": "Top",
+          "name": "Lined"
+        },
+        {
+          "type": "Freckles",
+          "name": "None"
+        },
+        {
+          "type": "Mood",
+          "name": "Overjoyed"
+        },
+        {
+          "type": "Eyes",
+          "name": "Squint"
+        },
+        {
+          "type": "Mouth",
+          "name": "Open"
+        },
+        {
+          "type": "Mouth",
+          "name": "Teeth"
+        },
+        {
+          "type": "Mouth",
+          "name": "Tongue"
+        }
+      ],
+      "levels": "",
+      "stats": "",
+      "unlockable_content": false,
+      "explicit_and_sensitive_content": false,
+      "supply": 1,
+      "blockchain": "Ethereum",
+      "sale_type": "Timed Auction",
+      "price": 0.01,
+      "method": [
+        "Sell to highest bidder",
+        0.001
+      ],
+      "duration": "1 month",
+      "specific_buyer": false,
+      "quantity": 1,
+      "nft_url": ""
+    }
+  ]
+}

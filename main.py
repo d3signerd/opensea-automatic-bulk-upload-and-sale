@@ -44,49 +44,71 @@ yellow = Fore.YELLOW  # Yellow color.
 reset = Style.RESET_ALL  # Reset color attribute.
 
 
+""" Reader
+* Reads files and extracts NFT data into a structured list.
+"""
 class Reader:
-    """Read files and extract NFTs data. Convert all types into a list."""
 
+    """ Init
+    @Params: 
+    - path: The instance of the data file path
+    """
     def __init__(self, path: str) -> None:
-        """Basically open a file and get all NFTs' data."""
+
         # Get file's extension to lowercase (MacOS support).
         self.path = path  # Instance the file path.
+
         # Get splitted file name (['text', '.txt']) and then remove the dot.
         self.extension = os.path.splitext(self.path)[1][1:].lower()
+
         # Check if the extension is supported by the Reader class.
         if self.extension in ('json', 'csv', 'xlsx'):
             # Eval function: self.extract_{FILE_EXTENSION}_file()
             eval('self.extract_' + self.extension + '_file()')
+
         else:  # Stop running the script.
             exit('The file extension is not supported.')
 
+    """ Extract json files
+    * Saves JSON into a list of dictionaries
+    """
     def extract_json_file(self) -> None:
-        """Transform JSON file format to a list of dictionaries."""
-        from json import loads  # A Python default import.
+        from json import loads 
+
         # Load and read the JSON file and extract "nft" part.
         self.file = loads(open(self.path, encoding='utf-8').read())['nft']
         self.lenght_file = len(self.file)  # Number of NFTs.
 
+    """ Extract CSV files
+    * Saves the CSV file into a list of dictionaries
+    """
     def extract_csv_file(self) -> None:
-        """Transform CSV file format to a list of dictionaries."""
         # Open file and splitlines (every "\n") and remove headers.
         # It gets a list of each rows.
         self.file = open(self.path, encoding='utf-8').read().splitlines()[1:]
         self.lenght_file = len(self.file)  # Number of NFTs.
 
+    """  Extract xlxs files
+    * Takes an xlxs file and saves it into a list of dictionaries
+    """
     def extract_xlsx_file(self) -> None:
-        """Transform XLSX file format to a dictionnary {key: {value, ...}}."""
-        from pandas import read_excel  # Pandas module: pip install pandas
-        self.file = read_excel(self.path)  # Read the Excel (XLSX) file.
-        self.lenght_file = self.file.shape[0]  # Get number of rows.
-        self.file = self.file.to_dict()  # Transform XLSX to a dictionnnary.
+        from pandas import read_excel
+
+        self.file = read_excel(self.path)
+        self.lenght_file = self.file.shape[0]
+        self.file = self.file.to_dict() 
 
 
+""" Structure
+* Converts the JSON/CSV/XLSX data lists into objects
+"""
 class Structure:
-    """Structure JSON/CSV/XLSX data lists or dictionnaries."""
 
+    """ Init
+    @Params: 
+    - action: The actions choosen
+    """
     def __init__(self, action: list) -> None:
-        """Make a copy of the read file and its extension."""
         self.file = reader.file.copy()  # File data copy.
         self.extension = reader.extension  # File extension copy.
         self.action = action  # 1, 2 or 1 and 2.
@@ -95,79 +117,117 @@ class Structure:
         if 1 in self.action and 2 not in self.action and 3 not in self.action:
             # Construct the save file
             file_path = os.path.splitext(reader.path)[0]
-            # extension = os.path.splitext(reader.path)[1][1:].lower()
             self.save_file = f'{file_path}_uploaded.csv'
             
+            # Check to see if the file exists first before creating it
+            # This is useful if continuing an existing upload of large collections
             if not os.path.exists(self.save_file):
                 with open(self.save_file, 'a+', encoding='utf-8') as file:
                     file.write('nft_url;; supply;; blockchain;; type;; price;; '
                                'method;; duration;; specific_buyer;; quantity;; name')
+
+            # Otherwise read the existing file
             else:
                 items = Reader(self.save_file).file
                 self.completed = list(map(lambda item: str(item.split(';; ')[8]), items))
-                print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads.')
+                print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads.  If you are not continuing a prior opload please remove {self.save_file}')
 
+    """ Get data
+    * Gets the NFT data
+    @Params:
+    - nft_number: The nft currently in use
+    """
     def get_data(self, nft_number: int) -> None:
-        """Get NFT's data."""
         self.nft_number = nft_number
+
         # Eval function: self.structure_{FILE_EXTENSION}()
         eval('self.structure_' + self.extension + '()')
 
+    """ Structure JSON
+    * Transforms JSON dictionaries into list
+    """
     def structure_json(self) -> None:
-        """Transform JSON dictionnaries list to a whole list."""
-        nft_data = self.file[self.nft_number]  # Get datas of index.
+        nft_data = self.file[self.nft_number]
+
         # Get key's value from the NFT data.
         nft_data = [nft_data[data] for data in nft_data]
-        # Take each element in the list and check it.
-        self.structure_data([self.dict_to_list(
-            element) for element in nft_data])  # Then structure data.
 
+        # Take each element in the list and check it and structure it
+        self.structure_data([self.dict_to_list(element) for element in nft_data])
+
+    """ Structure CSV
+    * Transforms CSV dictionaries into list
+    """
     def structure_csv(self) -> None:
-        """Transform CSV file into a list."""
-        # Note: each information is split every ";;", you can change the
-        self.structure_data(self.change_type(  # characters to others.
-            self.file[self.nft_number].split(';;')))
+        # Note: each value is split every ";;", you can change the characters to others.
+        self.structure_data(self.change_type(self.file[self.nft_number].split(';;')))
 
+    """ Structure XLSX
+    * Transforms XLSX dictionaries into list
+    """
     def structure_xlsx(self) -> None:
-        """Transform XLSX file into a list."""
         self.structure_data([
             element.replace('nan', '').strip() if isinstance(element, str) else
-            element for element in self.change_type([self.file[element].get(
-                self.nft_number) for element in self.file])])
+            element for element in self.change_type([self.file[element].get(self.nft_number) for element in self.file])])
 
+    """ Dictionary to list
+    * Transforms dictionaries to lists
+    @Params:
+    - element: Dictionary or string list
+    @Returns: list or str
+    """
     def dict_to_list(self, element: dict or str) -> list or str:
-        """Transform a dictionnary into a list. - JSON file method."""
-        if isinstance(element, list):  # If element is a list.
-            final_list = []  # Final list that will be return.
-            for item in element:  # For each item in this list.
-                temp_list = []  # Store all key's value.
-                if isinstance(item, dict):  # If element is a dict.
-                    # For each key in dict (item), get key's value.
+        # Transform a dictionnary into a list. - JSON file method.
+        if isinstance(element, list): 
+            final_list = [] 
+
+            for item in element:
+                temp_list = []  
+
+                # If element is a dict. Each key in dict (item), get key's value.
+                if isinstance(item, dict):  
                     [temp_list.append(item.get(key)) for key in item]
                 else:
-                    temp_list = item  # Do nothing.
-                final_list.append(temp_list)  # Append the temp list.
+                    temp_list = item
+
+                final_list.append(temp_list)
+
             return final_list
+
         else:
             return element  # Return the same element.
 
+    """ Change type
+    * Changes dictionary value types from strings
+    @Params:
+    - nft_data: List of NFT data
+    @Returns: List of elements
+    """
     def change_type(self, nft_data: list) -> list:
-        """Change type of element with a literal eval."""
-        from ast import literal_eval  # A Python default import.
-        list_ = []  # List that contains NFT's data.
-        for data in nft_data:  # Get each element of NFT's data.
-            element = str(data).strip()  # Remove whitespaces.
-            try:  # Change type of element (str to int/float/list/bool).
-                # In case of element is an integer, float, list or boolean.
+        from ast import literal_eval 
+
+        list_ = []
+
+        for data in nft_data: 
+            # Remove whitespaces.
+            element = str(data).strip()
+
+            # Change type of element (str to int/float/list/bool).
+            try: 
                 list_.append(literal_eval(element))
-            except Exception:  # SyntaxError or ValueError.
-                # In case of element is a real string.
+
+            # SyntaxError or ValueError.
+            except Exception: 
                 list_.append(element)
+
         return list_
 
+    """ Structur data
+    * Structures the NFT data into a typed object
+    @Params: 
+    - nft_data: List of NFT data
+    """
     def structure_data(self, nft_data: list) -> None:
-        """Structure each data of the NFT in a variable."""
-        # self.nft_data_list = nft_data  # For development.
         index = 9 if 1 not in self.action else 0
         if 1 in self.action:  # Upload part.
             self.file_path: str or list = nft_data[0]
@@ -194,13 +254,27 @@ class Structure:
             self.supply: int = nft_data[1]
             self.blockchain: str = str(nft_data[2]).capitalize()
 
+    """ Is empty
+    * Checks if the dictionary is empty
+    @Params:
+    - element: The string value of the NFT
+    - data: The data value fo the NFT
+    - value: The value of the NFT
+    @Returns: Whether or not it was successful
+    """
     def is_empty(self, element: str, data: str, value: str = '') -> bool:
-        """Check if data is empty and input its value."""
-        if data != value:  # Check if the data is not an empty string.
-            web.send_keys(element, data)  # or a default value, and send it.
+        if data != value:
+            web.send_keys(element, data)
             return False
+
         return True
 
+    """ Save nft
+    * Saves the NFT data (Mainly the new NFT URL) as an uploaded list
+    @Params:
+    - url: The new NFT url
+    - data: The existing NFT data
+    """
     def save_nft(self, url, name) -> None:
         """Save the NFT URL, Blockchain and supply number in a file."""
         # Note: only CSV file will be created.
@@ -211,82 +285,124 @@ class Structure:
         # Save completed
 
 
+""" Webdriveer
+* A Web Driver wrapper
+"""
 class Webdriver:
-    """Webdriver class and methods to prevent exceptions."""
 
+    """ Init
+    @Params: 
+    - wallet: The wallet choice.  [Coingbase, Metamask]
+    """
     def __init__(self, wallet: int) -> None:
-        """Contains the file paths of the webdriver and the extension."""
-        # Used files path, change them with your path if necessary.
+        # Wallet extensions
         self.webdriver_path = os.path.abspath('assets/chromedriver.exe') if \
             os.name == 'nt' else os.path.abspath('assets/chromedriver')
         wallet_extension = ('MetaMask', 'Coinbase')[wallet == 0]
         self.extension_path = os.path.abspath('assets/{}.crx'.format(wallet_extension))
         self.driver = self.webdriver()  # Start new webdriver.
 
+    """ Webdriver
+    * Builds the web driver
+    @Returns: The app webdriver
+    """
     def webdriver(self) -> webdriver:
-        """Start a webdriver and return its state."""
-        options = webdriver.ChromeOptions()  # Configure options for Chrome.
-        options.add_extension(self.extension_path)  # Add extension.
+        # Configure options for Chrome since that's what we are using.
+        options = webdriver.ChromeOptions()
+        options.add_extension(self.extension_path)
         options.add_argument("log-level=3")  # No logs is printed.
         options.add_argument("--mute-audio")  # Audio is muted.
-        options.add_argument("--lang=en-US")  # Set webdriver language
-        options.add_experimental_option(  # to English. - 2 methods.
-            'prefs', {'intl.accept_languages': 'en,en_US'})
+        # Set webdriver language to English. - 2 methods.
+        options.add_argument("--lang=en-US")  
+        options.add_experimental_option('prefs', {'intl.accept_languages': 'en,en_US'})
         driver = webdriver.Chrome(service=Service(  # DeprecationWarning using
             self.webdriver_path), options=options)  # executable_path.
-        driver.maximize_window()  # Maximize window to reach all elements.
+
+        # Maximize window to reach all elements.
+        driver.maximize_window()  
+
         return driver
 
+    """ Clickable
+    * Checks for element interaction
+    @Params:
+    - element: The element to click
+    """
     def clickable(self, element: str) -> None:
-        """Click on an element if it's clickable using Selenium."""
         try:
-            WDW(self.driver, 10).until(EC.element_to_be_clickable(
-                (By.XPATH, element))).click()
-        except Exception:  # Some buttons need to be visible to be clickable,
-            self.driver.execute_script(  # so JavaScript can bypass this.
-                'arguments[0].click();', self.visible(element))
+            WDW(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, element))).click()
 
+        # Some buttons need to be visible to be clickable, JavaScript can bypass this.
+        except Exception:
+            self.driver.execute_script('arguments[0].click();', self.visible(element))
+
+    """ Visible
+    * Checks the visibility of an element
+    @Params:
+    - element: The element to click
+    """
     def visible(self, element: str):
-        """Check if an element is visible using Selenium."""
-        return WDW(self.driver, 10).until(
-            EC.visibility_of_element_located((By.XPATH, element)))
+        return WDW(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, element)))
 
+    """ Send keys
+    * Send key input to elements
+    @Params:
+    - element: The element to send values to
+    - keys: The input to send to the element
+    """
     def send_keys(self, element: str, keys: str) -> None:
-        """Send keys to an element if it's visible using Selenium."""
         try:
             self.visible(element).send_keys(keys)
-        except Exception:  # Some elements are not visible but are present.
-            WDW(self.driver, 5).until(EC.presence_of_element_located(
-                (By.XPATH, element))).send_keys(keys)
 
+        # Some elements are not visible but are present.
+        except Exception:  
+            WDW(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, element))).send_keys(keys)
+
+    """ Send date
+    * Send a date (DD-MM-YYYY HH:MM) to a date input by clicking on it.
+    @Params:
+    - element: The element to send a date to
+    - keys: The input to send to the element
+    """
     def send_date(self, element: str, keys: str) -> None:
-        """Send a date (DD-MM-YYYY HH:MM) to a date input by clicking on it."""
         keys = keys.split('-') if '-' in keys else [keys]
         keys = [keys[1], keys[0], keys[2]] if len(keys) > 1 else keys
+
         for part in range(len(keys) - 1 if keys[len(keys) - 1]  # Compare years
                 == str(dt.now().year) else len(keys)):  # To count clicks.
             self.clickable(element)  # Click first on the element.
             self.send_keys(element, keys[part])  # Then send it the date.
 
+    """ Clear element
+    * Clears the values of the element
+    @Params:
+    - element: The element to clear
+    """
     def clear_text(self, element) -> None:
-        """Clear text from an input."""
-        self.clickable(element)  # Click on the element then clear its text.
+        self.clickable(element)
+
         # Note: change with 'darwin' if it's not working on MacOS.
         control = Keys.COMMAND if os.name == 'posix' else Keys.CONTROL
         webdriver.ActionChains(self.driver).key_down(control).perform()
         webdriver.ActionChains(self.driver).send_keys('a').perform()
         webdriver.ActionChains(self.driver).key_up(control).perform()
 
+    """ Window handles
+    * Checks and waits for specifit tabs
+    @Params:
+    - window_number: The window to move to
+    """
     def window_handles(self, window_number: int) -> None:
-        """Check for window handles and wait until a specific tab is opened."""
-        WDW(self.driver, 30).until(lambda _: len(
-            self.driver.window_handles) > window_number)
-        # Switch to the asked tab.
+        WDW(self.driver, 30).until(lambda _: len(self.driver.window_handles) > window_number)
+
+        # Switch to the tab.
         self.driver.switch_to.window(self.driver.window_handles[window_number])
 
 
+""" OpenSea
+* The OpenSea controller
+"""
 class OpenSea:
-    """Main class: OpenSea automatic uploader."""
 
     def __init__(self, wallet: int, password: str, recovery_phrase: str) -> None:
         """Get the password and the recovery_phrase from the text file."""
@@ -769,85 +885,138 @@ class OpenSea:
             print(f'{red}| Counld not remove the NFT. {error}')
 
 
+# App Utilities
+# ---------------------------------------------
+
+""" Read file
+* Reads the content of a file.  It will create and saves input 
+* if the files does not exist
+@Params:
+- file_: The file to reaad/save to
+- question: The prompt for input
+@Returns: The file or prompt input value.
+"""
 def read_file(file_: str, question: str) -> str:
-    """Read file or ask for data to write in text file."""
     if not os.path.isfile(f'assets/{file_}.txt'):
         open(f'assets/{file_}.txt', 'a')  # Create a file if it doesn't exist.
+
     with open(f'assets/{file_}.txt', 'r+', encoding='utf-8') as file:
-        text = file.read()  # Read the file.
-        if text == '':  # If the file is empty.
+        text = file.read()
+
+        # Check for an empty file
+        if text == '':  
             text = input(question)  # Ask the question.
-            if input(f'Do you want to save your {file_} in '
-                     'a text file? (y/n) ').lower() != 'y':
+            if input(f'Do you want to save your {file_} in a text file? (y/n) ').lower() != 'y':
                 print(f'{yellow}Not saved.')
             else:
-                file.write(text)  # Write the text in file.
+                file.write(text)
                 print(f'{green}Saved.')
+
         return text
 
-
+""" Perform action
+* Suggests what actions are available to the user
+"""
 def perform_action() -> list:
     """Suggest multiple actions to the user."""
     while True:
         [print(string) for string in [
             f'{yellow}\nChoose an action to perform:{reset}',
-            '1 - Upload and sell NFTs (18 details/NFT).',
-            '2 - Upload NFTs (12 details/NFT).', 
-            '3 - Sell NFTs (9 details/NFT including 3 autogenerated).',
+            '1 - Upload and Sell NFTs',
+            '2 - Upload NFTs only', 
+            '3 - Sell NFTs only',
             '4 - Delete exsiting NFTs']]
         number = input('Action number: ')
-        if number.isdigit():  # Check if answer is a number.
+
+        # Check if answer is a number.
+        if number.isdigit():  
             if int(number) > 0 and int(number) < 5:
                 return [[1, 2,], [1], [2], [3]][int(number) - 1]
+
         print(f'{red}You must choose an option from the list.')
         return perform_action()
 
+""" Choose wallet
+* Choose the wallet type you want to use
+"""
 def choose_wallet() -> int:
-    """Give wallet options."""
     while True:
         [print(string) for string in [
             f'{yellow}\nChoose which wallet you want to use:{reset}',
             '1 - Coinbase Wallet',
             '2 - MetaMask Wallet']]
         number = input('Choose a wallet: ')
-        if number.isdigit():  # Check if the anser is within range.
+
+        # Check if the anser is within range.
+        if number.isdigit():  
             if int(number) > 0 and int(number) < 3:
                 return int(number) - 1
+
         print(f'{red}You must choose an option from the list.')
         return choose_wallet()
 
+""" Date file
+* Read the data folders and extract JSON, CSV and XLSX files
+"""
 def data_file() -> str:
     """Read the data folder and extract JSON, CSV and XLSX files."""
     while True:
-        file_number, files_list = 0, []
+        file_number = 0
+        files_list = []
+
         print(f'{yellow}\nChoose your file:{reset}\n0 - Browse a file on PC.')
-        for files in [glob(f'data/{extension}')  # Files of the data folder.
-                      for extension in ['*.json', '*.csv', '*.xlsx']]:
+
+        # Files of the data folder.
+        for files in [glob(f'data/{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]:
             for file in files:
                 file_number += 1
                 files_list.append(file)
                 print(f'{file_number} - {os.path.abspath(file)}')
+
+        # Files of the data sub folders
+        for files in [glob(f'data/*/{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]:
+            for file in files:
+                if 'Templates' not in file:
+                    file_number += 1
+                    files_list.append(file)
+                    print(f'{file_number} - {os.path.abspath(file)}')
+
         answer = input('File number: ')
+
         cls()  # Clear console.
-        if not answer.isdigit():  # Check if answer is a number.
+
+        # Check if answer is a number.
+        if not answer.isdigit():  
             print(f'{red}Answer must be an integer.')
-        elif int(answer) == 0:  # Browse a file on PC.
+
+        # Browse a file on PC.
+        elif int(answer) == 0:  
             print(f'{yellow}Browsing on your computer...')
             from tkinter import Tk  # Tkinter module: pip install tk
             from tkinter.filedialog import askopenfilename
             Tk().withdraw()  # Hide Tkinter tab.
             return askopenfilename(filetypes=[('', '.json .csv .xlsx')])
+
+        # Return file paths.
         elif int(answer) <= len(files_list):
-            return files_list[int(answer) - 1]  # Return path of file.
+            return files_list[int(answer) - 1] 
+
         print(f'{red}File doesn\'t exist.')
 
 
+""" Clear
+* Clears the console
+"""
 def cls() -> None:
     """Clear console function."""
     # Clear console for Windows using 'cls' and Linux & Mac using 'clear'.
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
+""" Exit with message
+@Params:
+- message: The message to display with exiting
+"""
 def exit(message: str = '') -> None:
     """Stop running the program using the sys module."""
     import sys
