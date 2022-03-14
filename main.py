@@ -123,14 +123,16 @@ class Structure:
             # This is useful if continuing an existing upload of large collections
             if not os.path.exists(self.save_file):
                 with open(self.save_file, 'a+', encoding='utf-8') as file:
-                    file.write('nft_url;; supply;; blockchain;; type;; price;; '
-                               'method;; duration;; specific_buyer;; quantity;; name')
+                    file.write('file_path;; nft_name;; link;; description;; collection;; properties;; '
+                        'levels;; stats;; unlockable_content;; explicit_and_sensitive_content;; '
+                        'supply;; blockchain;; type;; price;; method;; duration;; specific_buyer;; '
+                        'quantity;; nft_url')
 
             # Otherwise read the existing file
             else:
                 items = Reader(self.save_file).file
-                self.completed = list(map(lambda item: str(item.split(';; ')[8]), items))
-                print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads.  If you are not continuing a prior opload please remove {self.save_file}')
+                self.completed = list(map(lambda item: str(item.split(';; ')[1]), items))
+                print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads. \nIf you are not continuing a prior opload please remove:\n{self.save_file}\n')
 
     """ Get data
     * Gets the NFT data
@@ -228,31 +230,25 @@ class Structure:
     - nft_data: List of NFT data
     """
     def structure_data(self, nft_data: list) -> None:
-        index = 9 if 1 not in self.action else 0
-        if 1 in self.action:  # Upload part.
-            self.file_path: str or list = nft_data[0]
-            self.nft_name: str = str(nft_data[1])  # Set string value to
-            self.link: str = str(nft_data[2])  # real string to prevent
-            self.description: str = str(nft_data[3])  # different types.
-            self.collection: str = str(nft_data[4])
-            self.properties: list = nft_data[5]  # [[type, name], ...].
-            self.levels: list = nft_data[6]  # [[name, from, to], ...].
-            self.stats: list = nft_data[7]  # [[name, from, to], ...].
-            self.unlockable_content: list or bool = nft_data[8]  # [bool, str].
-            self.explicit_and_sensitive_content: bool = nft_data[9]
-            self.supply: int = nft_data[10]
-            self.blockchain: str = str(nft_data[11]).capitalize()
-        if 2 in self.action:  # Sale part.
-            self.type: str = str(nft_data[12 - index]).title()
-            self.price: float or int = nft_data[13 - index]
-            self.method: list = nft_data[14 - index]  # [method, price].
-            self.duration: list or str = nft_data[15 - index]
-            self.specific_buyer: list or bool = nft_data[16 - index]
-            self.quantity: int = nft_data[17 - index]
-        if index != 0:  # Sale only!
-            self.nft_url: str = str(nft_data[0])
-            self.supply: int = nft_data[1]
-            self.blockchain: str = str(nft_data[2]).capitalize()
+        self.file_path: str or list = nft_data[0]
+        self.nft_name: str = str(nft_data[1])  # Set string value to
+        self.link: str = str(nft_data[2])  # real string to prevent
+        self.description: str = str(nft_data[3]).replace('_new_line_', '\n')  # different types.
+        self.collection: str = str(nft_data[4])
+        self.properties: list = nft_data[5]  # [[type, name], ...].
+        self.levels: list = nft_data[6]  # [[name, from, to], ...].
+        self.stats: list = nft_data[7]  # [[name, from, to], ...].
+        self.unlockable_content: list or bool = nft_data[8]  # [bool, str].
+        self.explicit_and_sensitive_content: bool = nft_data[9]
+        self.supply: int = nft_data[10]
+        self.blockchain: str = str(nft_data[11]).capitalize()
+        self.type: str = str(nft_data[12]).title()
+        self.price: float or int = nft_data[13]
+        self.method: list = nft_data[14]  # [method, price].
+        self.duration: list or str = nft_data[15]
+        self.specific_buyer: list or bool = nft_data[16]
+        self.quantity: int = nft_data[17]
+        self.nft_url: str = str(nft_data[18])
 
     """ Is empty
     * Checks if the dictionary is empty
@@ -275,12 +271,17 @@ class Structure:
     - url: The new NFT url
     - data: The existing NFT data
     """
-    def save_nft(self, url, name) -> None:
+    def save_nft(self, url, data) -> None:
         """Save the NFT URL, Blockchain and supply number in a file."""
         # Note: only CSV file will be created.
         with open(self.save_file, 'a+', encoding='utf-8') as file:
-            file.write(f'\n{url};; {self.supply};; {self.blockchain};;'
-                       f' ;; ;; ;; ;; ;; {name}')  # Complete data manually.
+            modified_description = data.description.replace('\n', '_new_line_')
+            file.write(f'\n{data.file_path};; {data.nft_name};; {data.link};; {modified_description};; '
+                f'{data.collection};; {data.properties};; {data.levels};; {data.stats};; '
+                f'{data.unlockable_content};; {data.explicit_and_sensitive_content};; {data.supply};; '
+                f'{data.blockchain};; {data.type};; {data.price};; {data.method};; {data.duration};; '
+                f'{data.specific_buyer};; {data.quantity};; {url}')
+
         print(f'{green}| Data saved!')
         # Save completed
 
@@ -404,72 +405,78 @@ class Webdriver:
 """
 class OpenSea:
 
+    """ Init
+    @Params: 
+    - wallet: The wallet choice.
+    - password: The wallet password
+    - recovery_phrase: The wallet recovery phrase
+    """
     def __init__(self, wallet: int, password: str, recovery_phrase: str) -> None:
-        """Get the password and the recovery_phrase from the text file."""
-        self.recovery_phrase = recovery_phrase  # Get the MetaMask phrase.
-        self.password = password  # Get the new/same password.
-        self.login_url = 'https://opensea.io/login?referrer=%2Fasset%2Fcreate'
-        self.create_url = 'https://opensea.io/asset/create'  # OpenSea URLs.
+        # Store the credentials
+        self.recovery_phrase = recovery_phrase  
+        self.password = password
 
+        # Store URLs
+        self.login_url = 'https://opensea.io/login?referrer=%2Fasset%2Fcreate'
+        self.create_url = 'https://opensea.io/asset/create'
+
+    """ Wallet login
+    * Log into the user chosen wallet
+    """
     def wallet_login(self) -> None:
-        """Login to the appropriate wallet extension."""
         if wallet == 0: self.coinbase_login()
         else: self.metamask_login()
 
+    """ Coinbase login
+    * Log into the Coinbase wallet
+    """
     def coinbase_login(self) -> None:
-        """Login to the Coinbase extension."""
-        try:  # Try to login to the Coinbase extension.
+        try: 
             print('Login to Coinbase.', end=' ')
-            web.window_handles(0)  # Switch to the Coinbase extension tab.
-            web.driver.refresh()  # Reload the page to prevent a blank page.
-            # Click on the "I have a wallet" button.
-            web.clickable('//*[@data-testid="btn-import-existing-wallet"]')
-            # Click on the "Enter recover phrase" button.
-            web.clickable('//*[@data-testid="btn-import-recovery-phrase"]')
-            # Input the recovery phase
-            web.send_keys('//*[@data-testid="seed-phrase-input"]', self.recovery_phrase)
-            # Click on "Import wallet" button
-            web.clickable('//*[@data-testid="btn-import-wallet"]')
-            # Set password
-            web.send_keys('//*[@data-testid="setPassword"]', self.password)
-            # Verify password
-            web.send_keys('//*[@data-testid="setPasswordVerify"]', self.password)
-            # Agree to terms and conditions
-            web.clickable('//*[@data-testid="terms-and-privacy-policy-parent"]')
-            # Click on the "Submit" button
-            web.clickable('//*[@data-testid="btn-password-continue"]')
+            web.window_handles(0) # Switch to the Coinbase extension tab.
+            web.driver.refresh() # Reload the page to prevent a blank page.
+            web.clickable('//*[@data-testid="btn-import-existing-wallet"]') # Click on the "I have a wallet" button.
+            web.clickable('//*[@data-testid="btn-import-recovery-phrase"]') # Click on the "Enter recover phrase" button.
+            web.send_keys('//*[@data-testid="seed-phrase-input"]', self.recovery_phrase) # Input the recovery phase
+            web.clickable('//*[@data-testid="btn-import-wallet"]') # Click on "Import wallet" button
+            web.send_keys('//*[@data-testid="setPassword"]', self.password) # Set password
+            web.send_keys('//*[@data-testid="setPasswordVerify"]', self.password) # Verify password
+            web.clickable('//*[@data-testid="terms-and-privacy-policy-parent"]') # Agree to terms and conditions
+            web.clickable('//*[@data-testid="btn-password-continue"]') # Click on the "Submit" button
 
-        except Exception:  # Failed - a web element is not accessible.
+        # Failed - a web element is not accessible.
+        except Exception:  
             print(f'{red}Login to Coinbase failed, retrying...')
             self.coinbase_login()
 
+    """ MetaMask login
+    * Log into the MetaMask wallet
+    """
     def metamask_login(self) -> None:
-        """Login to the MetaMask extension."""
-        try:  # Try to login to the MetaMask extension.
+        try: 
             print('Login to MetaMask.', end=' ')
             web.window_handles(0)  # Switch to the MetaMask extension tab.
             web.driver.refresh()  # Reload the page to prevent a blank page.
-            # Click on the "Start" button.
-            web.clickable('//*[@class="welcome-page"]/button')
-            # Click on the "Import wallet" button.
-            web.clickable('//*[contains(@class, "btn-primary")][position()=1]')
-            # Click on the "I agree" button.
-            web.clickable('//footer/button[2]')
-            # Input the recovery phrase.
-            web.send_keys('//input[position()=1]', self.recovery_phrase)
+            web.clickable('//*[@class="welcome-page"]/button') # Click on the "Start" button.
+            web.clickable('//*[contains(@class, "btn-primary")][position()=1]') # Click on the "Import wallet" button.
+            web.clickable('//footer/button[2]') # Click on the "I agree" button.
+            web.send_keys('//input[position()=1]', self.recovery_phrase) # Input the recovery phrase.
+
             # Input a new password or the same password of your account.
             web.send_keys('//*[@id="password"]', self.password)
             web.send_keys('//*[@id="confirm-password"]', self.password)
-            # Click on the "I have read and agree to the..." checkbox.
-            web.clickable('(//*[@role="checkbox"])[2]')
-            # Click on the "Import" button.
-            web.clickable('//*[contains(@class, "btn-primary")][position()=1]')
+
+            web.clickable('(//*[@role="checkbox"])[2]') # Click on the "I have read and agree to the..." checkbox.
+            web.clickable('//*[contains(@class, "btn-primary")][position()=1]') # Click on the "Import" button.
+
             # Wait until the login worked and click on the "All done" button".
             web.visible('//*[contains(@class, "emoji")][position()=1]')
             web.clickable('//*[contains(@class, "btn-primary")][position()=1]')
+
             print(f'{green}Logged to MetaMask.')
 
-        except Exception:  # Failed - a web element is not accessible.
+        # Failed - a web element is not accessible.
+        except Exception: 
             print(f'{red}Login to MetaMask failed, retrying...')
             self.metamask_login()
 
@@ -604,19 +611,30 @@ class OpenSea:
             print('| Captcha found, solve and press enter', end=' ')
             wait_response = str(input())
 
-
+    """ OpenSea upload
+    * Uploads the nft to OpenSea
+    @Params:
+    - number: The item index to upload
+    @Returns: Whether the upload was successful or not
+    """
     def opensea_upload(self, number: int) -> bool:
-        """Upload multiple NFTs automatically on OpenSea."""
         print(f'\nUploading NFT n°{number}/{reader.lenght_file}.')
-        try:  # Go to the OpenSea create URL and input all datas of the NFT.
+
+        try:  
+            # Go to the OpenSea create URL and input all datas of the NFT.
             web.driver.get(self.create_url + '?enable_supply=true')
+
+            # Check for a preview
             if isinstance(structure.file_path, list):
                 if len(structure.file_path) == 2:
                     file_path = os.path.abspath(structure.file_path[0])
                     preview = os.path.abspath(structure.file_path[1])
-            else:  # No preview file.
+            # No preview file.
+            else:  
                 file_path = os.path.abspath(structure.file_path)
-            if not os.path.exists(file_path):  # Upload the NFT file.
+
+            # Upload the NFT file.
+            if not os.path.exists(file_path):  
                 raise TE('File doesn\'t exist or path is incorrect.')
             if os.path.getsize(file_path) / (1024 ** 2) > 100:
                 raise TE('File size must be less than 100 MegaBytes.')
@@ -624,7 +642,9 @@ class OpenSea:
                 ('jpg', 'jpeg', 'png', 'gif', 'svg', 'mp4',  # Check the file
                  'webm', 'mp3', 'wav', 'ogg', 'glb', 'gltf'):  # extensions.
                 raise TE('The file extension is not supported on OpenSea.')
+
             structure.is_empty('//*[@id="media"]', file_path)
+
             if os.path.splitext(file_path)[1][1:].lower() in \
                     ('mp4', 'webm', 'mp3', 'wav', 'ogg', 'glb', 'gltf'):
                 if not os.path.exists(preview):  # Upload the NFT file.
@@ -632,14 +652,19 @@ class OpenSea:
                 if os.path.getsize(preview) / (1024 ** 2) > 100:
                     raise TE('File size must be less than 100 MegaBytes.')
                 structure.is_empty('//input[@name="preview"]', preview)
+
             # Input NFT name.
             if structure.is_empty('//*[@id="name"]', structure.nft_name):
                 raise TE('The NFT name is missing.')
+
             # Input external link.
             structure.is_empty('//*[@id="external_link"]', structure.link)
+
             # Input description.
             structure.is_empty('//*[@id="description"]', structure.description)
-            if not structure.is_empty(  # Input collection and select it.
+
+            # Input collection and select it.
+            if not structure.is_empty(  
                     '//form/div[5]/div/div[2]/input', structure.collection):
                 try:  # Try to click on the collection button.
                     collection = ('//span[contains(text(), "'
@@ -719,7 +744,7 @@ class OpenSea:
             WDW(web.driver, 60).until(lambda _: web.driver.current_url != self.create_url + '?enable_supply=true')
             print(f'{green}| Uploaded.{reset}')
             if 2 not in structure.action:  # Save the data for future upload.
-                structure.save_nft(web.driver.current_url, structure.nft_name)
+                structure.save_nft(web.driver.current_url, structure)
             return True  # If it perfectly worked.
         except Exception as error:  # An element is not reachable.
             print(f'{red}An error occured. {error}')
@@ -863,8 +888,13 @@ class OpenSea:
         """Remove the NFT"""
         print(f'\nDeleting NFT n°{number}/{len(structure.file)}.')
         
-        web.driver.get(structure.nft_url)  # Edit url
-        try:  # Try to delete the NFT.
+        print(structure)
+
+        # Go to the edit url
+        web.driver.get(structure.nft_url)  
+
+        # Try to delete the NFT.
+        try:  
             edit_button = '//a[contains(text(), "Edit")]' # The edit element
 
             # Check for NFT
@@ -961,25 +991,29 @@ def choose_wallet() -> int:
 def data_file() -> str:
     """Read the data folder and extract JSON, CSV and XLSX files."""
     while True:
-        file_number = 0
         files_list = []
+
+        # Files in the data folder.
+        data_files = [glob(f'data/{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]
+        for files in sorted(data_files):
+            for file in files:
+                files_list.append(file)
+
+        # Files in the data sub folders
+        sub_folders = [glob(f'data/*/{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]
+        for files in sorted(sub_folders):
+            for file in files:
+                if 'Templates' not in file:
+                    files_list.append(file)
 
         print(f'{yellow}\nChoose your file:{reset}\n0 - Browse a file on PC.')
 
-        # Files of the data folder.
-        for files in [glob(f'data/{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]:
-            for file in files:
-                file_number += 1
-                files_list.append(file)
-                print(f'{file_number} - {os.path.abspath(file)}')
-
-        # Files of the data sub folders
-        for files in [glob(f'data/*/{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]:
-            for file in files:
-                if 'Templates' not in file:
-                    file_number += 1
-                    files_list.append(file)
-                    print(f'{file_number} - {os.path.abspath(file)}')
+        # Sort files and print
+        file_number = 0
+        files_list = sorted(files_list)
+        for file in files_list:
+            file_number += 1
+            print(f'{file_number} -{os.path.abspath(file)}')
 
         answer = input('File number: ')
 
