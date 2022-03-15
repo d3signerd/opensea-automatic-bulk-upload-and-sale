@@ -226,7 +226,17 @@ class Structure:
     - nft_data: List of NFT data
     """
     def structure_data(self, nft_data: list) -> None:
-        self.file_path: str or list = nft_data[0]
+
+        # Get the local home path
+        from os.path import expanduser
+        local_home_path = expanduser("~")
+
+        # Update the file path to local
+        file_path = nft_data[0]
+        home_path = os.path.sep.join(file_path.split(os.path.sep)[:3]) # Get the home path
+        file_path = file_path.replace(home_path, local_home_path) # Replace the home path
+
+        self.file_path: str or list = file_path
         # Set string values to real string to prevent different types.
         self.nft_name: str = str(nft_data[1])  
         self.link: str = str(nft_data[2])  # 
