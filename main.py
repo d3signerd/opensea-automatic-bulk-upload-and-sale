@@ -128,8 +128,7 @@ class Structure:
                         'supply;; blockchain;; type;; price;; method;; duration;; specific_buyer;; '
                         'quantity;; nft_url')
 
-            # Otherwise read the existing file
-            else:
+            else: # Otherwise read the existing file
                 items = Reader(self.save_file).file
                 self.completed = list(map(lambda item: str(item.split(';; ')[1]), items))
                 print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads. \nIf you are not continuing a prior opload please remove:\n{self.save_file}\n')
@@ -150,9 +149,7 @@ class Structure:
     """
     def structure_json(self) -> None:
         nft_data = self.file[self.nft_number]
-
-        # Get key's value from the NFT data.
-        nft_data = [nft_data[data] for data in nft_data]
+        nft_data = [nft_data[data] for data in nft_data] # Get key's value from the NFT data.
 
         # Take each element in the list and check it and structure it
         self.structure_data([self.dict_to_list(element) for element in nft_data])
@@ -189,6 +186,7 @@ class Structure:
                 # If element is a dict. Each key in dict (item), get key's value.
                 if isinstance(item, dict):  
                     [temp_list.append(item.get(key)) for key in item]
+
                 else:
                     temp_list = item
 
@@ -214,12 +212,10 @@ class Structure:
             # Remove whitespaces.
             element = str(data).strip()
 
-            # Change type of element (str to int/float/list/bool).
-            try: 
+            try: # Change type of element (str to int/float/list/bool).
                 list_.append(literal_eval(element))
 
-            # SyntaxError or ValueError.
-            except Exception: 
+            except Exception: # SyntaxError or ValueError.
                 list_.append(element)
 
         return list_
@@ -231,9 +227,10 @@ class Structure:
     """
     def structure_data(self, nft_data: list) -> None:
         self.file_path: str or list = nft_data[0]
-        self.nft_name: str = str(nft_data[1])  # Set string value to
-        self.link: str = str(nft_data[2])  # real string to prevent
-        self.description: str = str(nft_data[3]).replace('_new_line_', '\n')  # different types.
+        # Set string values to real string to prevent different types.
+        self.nft_name: str = str(nft_data[1])  
+        self.link: str = str(nft_data[2])  # 
+        self.description: str = str(nft_data[3]).replace('_new_line_', '\n')
         self.collection: str = str(nft_data[4])
         self.properties: list = nft_data[5]  # [[type, name], ...].
         self.levels: list = nft_data[6]  # [[name, from, to], ...].
@@ -272,7 +269,6 @@ class Structure:
     - data: The existing NFT data
     """
     def save_nft(self, url, data) -> None:
-        """Save the NFT URL, Blockchain and supply number in a file."""
         # Note: only CSV file will be created.
         with open(self.save_file, 'a+', encoding='utf-8') as file:
             modified_description = data.description.replace('\n', '_new_line_')
@@ -282,8 +278,7 @@ class Structure:
                 f'{data.blockchain};; {data.type};; {data.price};; {data.method};; {data.duration};; '
                 f'{data.specific_buyer};; {data.quantity};; {url}')
 
-        print(f'{green}| Data saved!')
-        # Save completed
+        print(f'{green}| Data saved!') # Save completed
 
 
 """ Webdriveer
@@ -296,7 +291,6 @@ class Webdriver:
     - wallet: The wallet choice.  [Coingbase, Metamask]
     """
     def __init__(self, wallet: int) -> None:
-        # Wallet extensions
         self.webdriver_path = os.path.abspath('assets/chromedriver.exe') if \
             os.name == 'nt' else os.path.abspath('assets/chromedriver')
         wallet_extension = ('MetaMask', 'Coinbase')[wallet == 0]
@@ -313,14 +307,14 @@ class Webdriver:
         options.add_extension(self.extension_path)
         options.add_argument("log-level=3")  # No logs is printed.
         options.add_argument("--mute-audio")  # Audio is muted.
+
         # Set webdriver language to English. - 2 methods.
         options.add_argument("--lang=en-US")  
         options.add_experimental_option('prefs', {'intl.accept_languages': 'en,en_US'})
-        driver = webdriver.Chrome(service=Service(  # DeprecationWarning using
-            self.webdriver_path), options=options)  # executable_path.
 
-        # Maximize window to reach all elements.
-        driver.maximize_window()  
+        # DeprecationWarning using executable_path.
+        driver = webdriver.Chrome(service=Service(self.webdriver_path), options=options)
+        driver.maximize_window() # Maximize window to reach all elements.
 
         return driver
 
@@ -333,8 +327,7 @@ class Webdriver:
         try:
             WDW(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, element))).click()
 
-        # Some buttons need to be visible to be clickable, JavaScript can bypass this.
-        except Exception:
+        except Exception: # Some buttons need to be visible to be clickable, JavaScript can bypass this.
             self.driver.execute_script('arguments[0].click();', self.visible(element))
 
     """ Visible
@@ -355,8 +348,7 @@ class Webdriver:
         try:
             self.visible(element).send_keys(keys)
 
-        # Some elements are not visible but are present.
-        except Exception:  
+        except Exception: # Some elements are not visible but are present.
             WDW(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, element))).send_keys(keys)
 
     """ Send date
@@ -369,10 +361,11 @@ class Webdriver:
         keys = keys.split('-') if '-' in keys else [keys]
         keys = [keys[1], keys[0], keys[2]] if len(keys) > 1 else keys
 
-        for part in range(len(keys) - 1 if keys[len(keys) - 1]  # Compare years
-                == str(dt.now().year) else len(keys)):  # To count clicks.
-            self.clickable(element)  # Click first on the element.
-            self.send_keys(element, keys[part])  # Then send it the date.
+        # Compare years
+        for part in range(len(keys) - 1 if keys[len(keys) - 1] == str(dt.now().year) else len(keys)):
+            # To count clicks. Click first on the element. Then send it the date.
+            self.clickable(element)
+            self.send_keys(element, keys[part])
 
     """ Clear element
     * Clears the values of the element
@@ -395,8 +388,6 @@ class Webdriver:
     """
     def window_handles(self, window_number: int) -> None:
         WDW(self.driver, 30).until(lambda _: len(self.driver.window_handles) > window_number)
-
-        # Switch to the tab.
         self.driver.switch_to.window(self.driver.window_handles[window_number])
 
 
@@ -444,8 +435,7 @@ class OpenSea:
             web.clickable('//*[@data-testid="terms-and-privacy-policy-parent"]') # Agree to terms and conditions
             web.clickable('//*[@data-testid="btn-password-continue"]') # Click on the "Submit" button
 
-        # Failed - a web element is not accessible.
-        except Exception:  
+        except Exception: # Failed - a web element is not accessible.
             print(f'{red}Login to Coinbase failed, retrying...')
             self.coinbase_login()
 
@@ -475,57 +465,60 @@ class OpenSea:
 
             print(f'{green}Logged to MetaMask.')
 
-        # Failed - a web element is not accessible.
-        except Exception: 
+        except Exception: # Failed - a web element is not accessible.
             print(f'{red}Login to MetaMask failed, retrying...')
             self.metamask_login()
 
+    """ Sign contract
+    * Forwards to the selected wallet contract signing.
+    """
     def sign_contract(self) -> None:
-        """Sign a Wallet contract to login to OpenSea."""
         if wallet == 0: self.coinbase_contract()
         else: self.metamask_contract()
 
+    """ Coinbase contract
+    * Go through the Coinbase contract flow
+    """
     def coinbase_contract(self) -> None:
-        """Sign a Coinbase contract to login to OpenSea."""
-        # Switch to the Coinbase pop up tab.
-        web.window_handles(2)
-        # Click on the "Sign" button - Make a contract link.
-        web.clickable('//*[@data-testid="sign-message"]')
-        try:  # Wait until the Coinbase pop up is closed.
-            WDW(web.driver, 10).until(EC.number_of_windows_to_be(2))
-        except TE:
-            self.coinbase_contract()  # Sign the contract a second time.
-        web.window_handles(1)  # Switch back to the OpenSea tab.
+        web.window_handles(2) # Switch to the Coinbase pop up tab.
+        web.clickable('//*[@data-testid="sign-message"]') # Click on the "Sign" button - Make a contract link.
 
+        try: # Wait until the Coinbase pop up is closed.
+            WDW(web.driver, 10).until(EC.number_of_windows_to_be(2))
+
+        except TE: # Sign the contract a second time.
+            self.coinbase_contract()  
+
+        web.window_handles(1) # Switch back to the OpenSea tab.
+
+    """ MetaMask contract
+    * Go through the MetaMask contract flow
+    """
     def metamask_contract(self) -> None:
-        """Sign a MetaMask contract to login to OpenSea."""
         if structure.blockchain == 'Polygon':
-            web.clickable('//div[@data-testid="Panel"][last()]/div/div'
-                          '/div/div/button')  # "Sign" button.
+            web.clickable('//div[@data-testid="Panel"][last()]/div/div/div/div/button')
 
-        web.window_handles(2)  # Switch to the MetaMask pop up tab.
-        # Click on the "Sign" button - Make a contract link.
-        web.clickable('//*[contains(@class, "button btn-secondary")]')
-        try:  # Wait until the MetaMask pop up is closed.
+        web.window_handles(2) # Switch to the MetaMask pop up tab.
+        web.clickable('//*[contains(@class, "button btn-secondary")]') # Click on the "Sign" button - Make a contract link.
+
+        try: # Wait until the MetaMask pop up is closed.
             WDW(web.driver, 10).until(EC.number_of_windows_to_be(2))
-        except TE:
-            self.metamask_contract()  # Sign the contract a second time.
-        web.window_handles(1)  # Switch back to the OpenSea tab.
 
+        except TE: # Sign the contract a second time.
+            self.metamask_contract()  
+
+        web.window_handles(1) # Switch back to the OpenSea tab.
+
+    """ Start coin wallet
+    * Start the Coinbase wallet flow
+    """
     def start_coin_wallet(self) -> None:
-        """Start the Coinbase wallet process."""
         try:
-            # Click on the "Coinbase wallet" button in list of wallets.
             web.clickable('//*[contains(text(), "Coinbase Wallet")]/../..')
-            # Switch to the new pop-up tab
-            web.window_handles(2)
-            # Click on the "Connect" button.
-            web.clickable('//*[@data-testid="allow-authorize-button"]')
-            # Switch to the new Wallet pop up tab.
-            # WDW(web.driver, 5)
-            web.window_handles(3)
-            # Cick on the "Sign" button.
-            web.clickable('//*[@data-testid="sign-message"]')
+            web.window_handles(2) # Switch to the new pop-up tab
+            web.clickable('//*[@data-testid="allow-authorize-button"]') # Click on the "Connect" button.
+            web.window_handles(3) # Switch to the new Wallet pop up tab.
+            web.clickable('//*[@data-testid="sign-message"]') # Cick on the "Sign" button.
 
         except Exception:  #Could not start the wallet
             print(f'{red}Starting the Coinbase wallet failed. Retrying.')
@@ -533,17 +526,15 @@ class OpenSea:
             web.driver.refresh()  # Reload the page (is the login failed?).
             self.opensea_login()  # Retry everything.
 
+    """ Start meta wallet
+    * Start the MetaMask wallet flow
+    """ 
     def start_meta_wallet(self) -> None:
-        """Start the MetaMask wallet process."""
         try:
-            # Click on the "MetaMask" button in list of wallets.
-            web.clickable('//*[contains(text(), "MetaMask")]/../..')
-            # Switch to the new pop-up tab
-            web.window_handles(2)
-            # Click on the "Next" button.
-            web.clickable('//*[@class="button btn-primary"]')
-            # Click on the "Connect" button.
-            web.clickable('//*[contains(@class, "button btn-primary")]')
+            web.clickable('//*[contains(text(), "MetaMask")]/../..') # Click on the "MetaMask" button in list of wallets.
+            web.window_handles(2) # Switch to the new pop-up tab
+            web.clickable('//*[@class="button btn-primary"]') # Click on the "Next" button.
+            web.clickable('//*[contains(@class, "button btn-primary")]') # Click on the "Connect" button.
             web.window_handles(2)  # Switch to the MetaMask pop up tab.
             self.metamask_contract()  # Sign the contract.
 
@@ -553,57 +544,63 @@ class OpenSea:
             web.driver.refresh()  # Reload the page (is the login failed?).
             self.opensea_login()  # Retry everything.
 
+    """ OpenSea login
+    * Log in to OpenSea flow
+    """
     def opensea_login(self) -> None:
-        """Login to OpenSea using the chosen wallet."""
         try:  # Try to login to the OpenSea using MetaMask.
             print('Login to OpenSea.', end=' ')
+
             web.window_handles(1)  # Switch to the main (data:,) tab.
             web.driver.get(self.login_url)  # Go to the OpenSea login URL.
-            # Click on the "Show more options" button.
-            web.clickable('//button[contains(@class, "show-more")]')
+            web.clickable('//button[contains(@class, "show-more")]') # Click on the "Show more options" button.
 
             # Login to the wallet
-            if wallet == 0:
-                self.start_coin_wallet()
-            else:
-                self.start_meta_wallet()
+            if wallet == 0: self.start_coin_wallet()
+            else: self.start_meta_wallet()
 
             # Check if the login worked.
             web.window_handles(1)  # Switch back to the OpenSea tab.
             WDW(web.driver, 15).until(EC.url_to_be(self.create_url))
+
             print(f'{green}Logged to OpenSea.\n')
+
         except Exception:  # The contract failed.
             try:
                 web.window_handles(1)  # Switch back to the OpenSea tab.
                 web.window_handles(2)  # Switch to the MetaMask pop up tab.
                 self.sign_contract()  # Sign the contract.
+
                 # Check if the login worked.
                 WDW(web.driver, 15).until(EC.url_to_be(self.create_url))
+
                 print(f'{green}Logged to OpenSea.\n')
+
             except Exception:
                 print(f'{red}Login to OpenSea failed. Retrying.')
+
                 web.window_handles(1)  # Switch back to the OpenSea tab.
                 web.driver.refresh()  # Reload the page (is the login failed?).
                 self.opensea_login()  # Retry everything.
 
-
+    """ Check for captcha
+    * Check to see if a captcha shows.
+    * Most likely will and you have to solve it manually.
+    """
     def check_for_captcha(self) -> None:
-        # Check to wait for captcha
-        if web.visible('//h4[contains(text(), "Almost done")]'):
+        if web.visible('//h4[contains(text(), "Almost done")]'): # Check to wait for captcha
 
-            # Look for the captcha ifrmae and switch to it
-            try:
-                time.sleep(2)
+            try: # Look for the captcha ifrmae and switch to it
+                time.sleep(1)
                 iframes = web.driver.find_elements(by=By.TAG_NAME, value="iframe")
                 web.driver.switch_to.frame(iframes[0])
-                # print('Found iframe and switched to it')
+                
             except Exception:
                 print('| Could not find the captcha iframe')
 
-            # Try to click the anchor
-            try:
+            try: # Try to click the anchor
                 web.clickable('//*[@id="recaptcha-anchor"]/div[1]')
-                # print('Found anchor and clicked it')
+
             except Exception:
                 print('| Could not find the anchor')
 
@@ -624,33 +621,44 @@ class OpenSea:
             # Go to the OpenSea create URL and input all datas of the NFT.
             web.driver.get(self.create_url + '?enable_supply=true')
 
+            # Upload NFT File
+            # -------------------------------
+
             # Check for a preview
-            if isinstance(structure.file_path, list):
+            if isinstance(structure.file_path, list): 
                 if len(structure.file_path) == 2:
                     file_path = os.path.abspath(structure.file_path[0])
                     preview = os.path.abspath(structure.file_path[1])
-            # No preview file.
-            else:  
+            
+            else: # No preview file.
                 file_path = os.path.abspath(structure.file_path)
 
-            # Upload the NFT file.
-            if not os.path.exists(file_path):  
+            # Check if the file exists
+            if not os.path.exists(file_path):
                 raise TE('File doesn\'t exist or path is incorrect.')
+
+            # File size
             if os.path.getsize(file_path) / (1024 ** 2) > 100:
                 raise TE('File size must be less than 100 MegaBytes.')
+
+            # Check the file
             if os.path.splitext(file_path)[1][1:].lower() not in \
-                ('jpg', 'jpeg', 'png', 'gif', 'svg', 'mp4',  # Check the file
-                 'webm', 'mp3', 'wav', 'ogg', 'glb', 'gltf'):  # extensions.
+                ('jpg', 'jpeg', 'png', 'gif', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'glb', 'gltf'):
                 raise TE('The file extension is not supported on OpenSea.')
 
-            structure.is_empty('//*[@id="media"]', file_path)
+            # Submit the image
+            image_element = '//*[@id="media"]'
+            WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element))).send_keys(file_path)
 
+            # Check for media
             if os.path.splitext(file_path)[1][1:].lower() in \
                     ('mp4', 'webm', 'mp3', 'wav', 'ogg', 'glb', 'gltf'):
-                if not os.path.exists(preview):  # Upload the NFT file.
+                # Upload the NFT file.
+                if not os.path.exists(preview):  
                     raise TE('File doesn\'t exist or path is incorrect.')
                 if os.path.getsize(preview) / (1024 ** 2) > 100:
                     raise TE('File size must be less than 100 MegaBytes.')
+
                 structure.is_empty('//input[@name="preview"]', preview)
 
             # Input NFT name.
@@ -1093,7 +1101,7 @@ if __name__ == '__main__':
 
         # Move on to the next NFT if it has alraedy been completed
         if 1 in action and structure.nft_name in structure.completed:
-            print(f'NFT n°{nft_number} has alraedy been uploaded.')
+            print(f'NFT n°{nft_number + 1} has alraedy been uploaded.')
         else:
             upload = None  # Prevent Undefined value error.
             if 1 in action:  # 1 = Upload. If user wants to upload the NFT.
