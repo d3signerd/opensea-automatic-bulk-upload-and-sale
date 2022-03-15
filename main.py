@@ -314,7 +314,7 @@ class Webdriver:
 
         # DeprecationWarning using executable_path.
         driver = webdriver.Chrome(service=Service(self.webdriver_path), options=options)
-        driver.maximize_window() # Maximize window to reach all elements.
+        # driver.maximize_window() # Maximize window to reach all elements.
 
         return driver
 
@@ -615,7 +615,7 @@ class OpenSea:
     @Returns: Whether the upload was successful or not
     """
     def opensea_upload(self, number: int) -> bool:
-        print(f'\nUploading NFT n°{number}/{reader.lenght_file}.')
+        print(f'\nUploading NFT n°{number}/{reader.lenght_file}. -{structure.nft_name}')
 
         try:  
             # Go to the OpenSea create URL and input all datas of the NFT.
