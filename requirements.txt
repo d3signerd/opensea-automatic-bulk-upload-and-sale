@@ -3,3 +3,4 @@ colorama
 pandas
 openpyxl
 tk
+pillow

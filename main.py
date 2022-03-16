@@ -657,6 +657,8 @@ class OpenSea:
                 raise TE('The file extension is not supported on OpenSea.')
 
             # Submit the image
+            from PIL import Image
+            Image.open(file_path)
             image_element = '//*[@id="media"]'
             WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element))).send_keys(file_path)
 
@@ -759,7 +761,7 @@ class OpenSea:
             self.check_for_captcha()
 
             # Verify upload
-            WDW(web.driver, 60).until(lambda _: web.driver.current_url != self.create_url + '?enable_supply=true')
+            WDW(web.driver, 600).until(lambda _: web.driver.current_url != self.create_url + '?enable_supply=true')
             print(f'{green}| Uploaded.{reset}')
             if 2 not in structure.action:  # Save the data for future upload.
                 structure.save_nft(web.driver.current_url, structure)
