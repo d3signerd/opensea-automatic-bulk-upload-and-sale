@@ -113,7 +113,10 @@ class Structure:
         self.extension = reader.extension  # File extension copy.
         self.action = action  # 1, 2 or 1 and 2.
         self.completed = []
+        self.verified = []
+        self.missing = []
 
+        # Record upload
         if 1 in self.action and 2 not in self.action and 3 not in self.action:
             # Construct the save file
             file_path = os.path.splitext(reader.path)[0]
@@ -122,6 +125,8 @@ class Structure:
             # Check to see if the file exists first before creating it
             # This is useful if continuing an existing upload of large collections
             if not os.path.exists(self.save_file):
+                print('Creating completed file.')
+
                 with open(self.save_file, 'a+', encoding='utf-8') as file:
                     file.write('file_path;; nft_name;; link;; description;; collection;; properties;; '
                         'levels;; stats;; unlockable_content;; explicit_and_sensitive_content;; '
@@ -131,7 +136,29 @@ class Structure:
             else: # Otherwise read the existing file
                 items = Reader(self.save_file).file
                 self.completed = list(map(lambda item: str(item.split(';; ')[1]), items))
-                print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads. \nIf you are not continuing a prior opload please remove:\n{self.save_file}\n')
+                print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads. \nIf you are not continuing a prior upload please remove:\n{self.save_file}\n')
+
+        # Record verified
+        elif 4 in self.action:
+            file_suffix = '_verified.csv'
+            file_path = os.path.splitext(reader.path)[0]
+            self.save_file = file_path.replace('_uploaded', file_suffix)
+
+            # Check to see if the file exists first before creating it
+            # This is useful if continuing an existing upload of large collections
+            if not os.path.exists(self.save_file):
+                print('Creating verified file.')
+
+                with open(self.save_file, 'a+', encoding='utf-8') as file:
+                    file.write('file_path;; nft_name;; link;; description;; collection;; properties;; '
+                        'levels;; stats;; unlockable_content;; explicit_and_sensitive_content;; '
+                        'supply;; blockchain;; type;; price;; method;; duration;; specific_buyer;; '
+                        'quantity;; nft_url')
+
+            else: # Otherwise read the existing file
+                items = Reader(self.save_file).file
+                self.verified = list(map(lambda item: str(item.split(';; ')[1]), items))
+                print(f'You have already verified {len(self.verified)} of {len(self.file)} uploads. \nIf you are not continuing a prior verification please remove:\n{self.save_file}\n')
 
     """ Get data
     * Gets the NFT data
@@ -615,8 +642,9 @@ class OpenSea:
                 print('| Could not find the anchor')
 
             # Solve the captcha
-            print('| Captcha found, solve and press enter', end=' ')
-            wait_response = str(input())
+            print('| Captcha found, solve it...')
+            # print('| Captcha found, solve and press enter')
+            # wait_response = str(input())
 
     """ OpenSea upload
     * Uploads the nft to OpenSea
@@ -656,11 +684,21 @@ class OpenSea:
                 ('jpg', 'jpeg', 'png', 'gif', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'glb', 'gltf'):
                 raise TE('The file extension is not supported on OpenSea.')
 
-            # Submit the image
-            from PIL import Image
-            Image.open(file_path)
-            image_element = '//*[@id="media"]'
-            WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element))).send_keys(file_path)
+            # Click the image button
+            image_element = '//div[contains(@class, "FileInputreact__Container-sc-u4tlig-3")]'
+            web.clickable(image_element)
+            # found_element = WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element)))
+            # found_element.click()
+
+            # Run through selecting the image
+            import pyautogui
+            pyautogui.write(file_path)
+            pyautogui.press('enter')
+            pyautogui.press('enter')
+
+            # Old upload for history
+            #'//*[@id="media"]'
+            # WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element))).send_keys(file_path)
 
             # Check for media
             if os.path.splitext(file_path)[1][1:].lower() in \
@@ -761,7 +799,7 @@ class OpenSea:
             self.check_for_captcha()
 
             # Verify upload
-            WDW(web.driver, 600).until(lambda _: web.driver.current_url != self.create_url + '?enable_supply=true')
+            WDW(web.driver, 2400).until(lambda _: web.driver.current_url != self.create_url + '?enable_supply=true')
             print(f'{green}| Uploaded.{reset}')
             if 2 not in structure.action:  # Save the data for future upload.
                 structure.save_nft(web.driver.current_url, structure)
@@ -907,8 +945,6 @@ class OpenSea:
     def opensea_remove(self, number: int) -> None:
         """Remove the NFT"""
         print(f'\nDeleting NFT n°{number}/{len(structure.file)}.')
-        
-        print(structure)
 
         # Go to the edit url
         web.driver.get(structure.nft_url)  
@@ -934,6 +970,24 @@ class OpenSea:
         except Exception as error: # Faled, an error has occured
             print(f'{red}| Counld not remove the NFT. {error}')
 
+    def opensea_check_upload(self, number: int) -> None:
+        print(f'\nChecking NFT upload n°{number}/{len(structure.file)}.')
+
+        # Go to the edit url
+        web.driver.get(structure.nft_url)  
+
+        # Check for NFT
+        edit_button = '//a[contains(text(), "Edit")]' # The edit element
+        try:
+            WDW(web.driver, 10).until(EC.visibility_of_element_located((By.XPATH, edit_button)))
+            print('| Exists.')
+            structure.save_nft(web.driver.current_url, structure)
+
+        except Exception:  # An error occured while looking for edit
+            print('Missing...')
+            structure.missing.append(structure.nft_name)
+
+        time.sleep(2)
 
 # App Utilities
 # ---------------------------------------------
@@ -975,13 +1029,14 @@ def perform_action() -> list:
             '1 - Upload and Sell NFTs',
             '2 - Upload NFTs only', 
             '3 - Sell NFTs only',
-            '4 - Delete exsiting NFTs']]
+            '4 - Delete exsiting NFTs',
+            '5 - Check uploads']]
         number = input('Action number: ')
 
         # Check if answer is a number.
         if number.isdigit():  
-            if int(number) > 0 and int(number) < 5:
-                return [[1, 2,], [1], [2], [3]][int(number) - 1]
+            if int(number) > 0 and int(number) < 6:
+                return [[1, 2,], [1], [2], [3], [4]][int(number) - 1]
 
         print(f'{red}You must choose an option from the list.')
         return perform_action()
@@ -1114,6 +1169,8 @@ if __name__ == '__main__':
         # Move on to the next NFT if it has alraedy been completed
         if 1 in action and structure.nft_name in structure.completed:
             print(f'NFT n°{nft_number + 1} has alraedy been uploaded.')
+        elif 4 in action and structure.nft_name in structure.verified:
+            print(f'NFT n°{nft_number + 1} has alraedy been verified.')
         else:
             upload = None  # Prevent Undefined value error.
             if 1 in action:  # 1 = Upload. If user wants to upload the NFT.
@@ -1127,7 +1184,11 @@ if __name__ == '__main__':
                         opensea.opensea_sale(nft_number + 1)  # Sell NFT.
             if 3 in action:  # 4 - Delete.  Delete NFTS from Opensea.
                 opensea.opensea_remove(nft_number + 1)  # Remove the NFT
+            if 4 in action:  # 5 - check existance
+                opensea.opensea_check_upload(nft_number + 1)
 
+    if 4 in action:
+        print(structure.missing)
 
     web.driver.quit()  # Stop the webdriver.
     print(f'\n{green}All done! Your NFTs have been taken care of.')

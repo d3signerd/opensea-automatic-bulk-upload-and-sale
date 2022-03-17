@@ -124,11 +124,6 @@ This script allows you to upload and sell **as many NFTs as you want to OpenSea*
   * Extract the repository folder from the ZIP file, you should have a folder named  `opensea-automatic-bulk-upload-and-sale-master`.
   * Open a command prompt in the repository folder and type one of these commands (may require ``sudo`` on MacOS and Linux):
 
-      Install these first before installing requirements.  Pillow requires the following
-      YES, you need Homebrew
-    * ```
-      brew install libjpeg
-    * ```
     
     * ```
       pip install -r requirements.txt

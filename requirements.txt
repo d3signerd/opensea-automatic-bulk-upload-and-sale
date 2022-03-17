@@ -3,4 +3,4 @@ colorama
 pandas
 openpyxl
 tk
-pillow
+pyautogui
