@@ -684,21 +684,24 @@ class OpenSea:
                 ('jpg', 'jpeg', 'png', 'gif', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'glb', 'gltf'):
                 raise TE('The file extension is not supported on OpenSea.')
 
-            # # Click the image button
-            # image_element = '//div[contains(@class, "FileInputreact__Container-sc-u4tlig-3")]'
-            # web.clickable(image_element)
-            # # found_element = WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element)))
-            # # found_element.click()
+            # Try pyautogui first
+            try: 
+                import pyautogui
 
-            # # Run through selecting the image
-            # import pyautogui
-            # pyautogui.write(file_path)
-            # pyautogui.press('enter')
-            # pyautogui.press('enter')
+                # Click the image button
+                image_element = '//div[contains(@class, "FileInputreact__Container-sc-u4tlig-3")]'
+                web.clickable(image_element)
+                # found_element = WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element)))
+                # found_element.click()
 
-            # Old upload for history
-            image_element = '//*[@id="media"]'
-            WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element))).send_keys(file_path)
+                # Run through selecting the image
+                pyautogui.write(file_path)
+                pyautogui.press('enter')
+                pyautogui.press('enter')
+
+            except: # Fallback upload for history
+                image_element = '//*[@id="media"]'
+                WDW(web.driver, 10).until(EC.presence_of_element_located((By.XPATH, image_element))).send_keys(file_path)
 
             # Check for media
             if os.path.splitext(file_path)[1][1:].lower() in \
