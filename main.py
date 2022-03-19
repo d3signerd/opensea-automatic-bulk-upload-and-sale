@@ -111,54 +111,71 @@ class Structure:
     def __init__(self, action: list) -> None:
         self.file = reader.file.copy()  # File data copy.
         self.extension = reader.extension  # File extension copy.
-        self.action = action  # 1, 2 or 1 and 2.
-        self.completed = []
+        self.action = action  # 1, 2, 3, 4 or 1,2 and 3.
+        self.uploaded = []
         self.verified = []
         self.missing = []
+        self.sold = []
 
-        # Record upload
-        if 1 in self.action and 2 not in self.action and 3 not in self.action:
+        # File name constants
+        uploaded = "uploaded"
+        verified = "verified"
+        sold = "sold"
+            
+        # Record uploads
+        if 1 in self.action:
+            # Check for the right files.
+            # Do not allow uploads from uploaded, verified, or sold.
+            if uploaded in reader.path or verified in reader.path or sold in reader.path:
+                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the original data JSON file that does not contain "{uploaded}", "{verified}" or "{sold}".\n')
+
             # Construct the save file
             file_path = os.path.splitext(reader.path)[0]
-            self.save_file = f'{file_path}_uploaded.csv'
+            self.save_uploaded_file = f'{file_path}_{uploaded}.csv'
             
             # Check to see if the file exists first before creating it
             # This is useful if continuing an existing upload of large collections
-            if not os.path.exists(self.save_file):
-                print('Creating completed file.')
+            if not os.path.exists(self.save_uploaded_file):
+                print('Creating uploaded file.')
 
-                with open(self.save_file, 'a+', encoding='utf-8') as file:
+                with open(self.save_uploaded_file, 'a+', encoding='utf-8') as file:
                     file.write('file_path;; nft_name;; link;; description;; collection;; properties;; '
                         'levels;; stats;; unlockable_content;; explicit_and_sensitive_content;; '
                         'supply;; blockchain;; type;; price;; method;; duration;; specific_buyer;; '
                         'quantity;; nft_url')
 
             else: # Otherwise read the existing file
-                items = Reader(self.save_file).file
-                self.completed = list(map(lambda item: str(item.split(';; ')[1]), items))
-                print(f'You have already completed {len(self.completed)} of {len(self.file)} uploads. \nIf you are not continuing a prior upload please remove:\n{self.save_file}\n')
+                items = Reader(self.save_uploaded_file).file
+                self.uploaded = list(map(lambda item: str(item.split(';; ')[1]), items))
+                print(f'You have already uploaded {len(self.uploaded)} of {len(self.file)} NFTs.\n')
 
         # Record verified
-        elif 4 in self.action:
-            file_suffix = '_verified.csv'
+        elif 2 in self.action:
+            # Check for the right files.
+            # Do not allow uploads from uploaded, verified, or sold.
+            if not uploaded in reader.path:
+                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{uploaded}" data JSON file.\n')
+
+            file_suffix = f'{verified}.csv'
             file_path = os.path.splitext(reader.path)[0]
-            self.save_file = file_path.replace('_uploaded', file_suffix)
+            self.save_verified_file = file_path.replace(f'{uploaded}', file_suffix)
 
             # Check to see if the file exists first before creating it
             # This is useful if continuing an existing upload of large collections
-            if not os.path.exists(self.save_file):
+            if not os.path.exists(self.save_verified_file):
                 print('Creating verified file.')
 
-                with open(self.save_file, 'a+', encoding='utf-8') as file:
+                with open(self.save_verified_file, 'a+', encoding='utf-8') as file:
                     file.write('file_path;; nft_name;; link;; description;; collection;; properties;; '
                         'levels;; stats;; unlockable_content;; explicit_and_sensitive_content;; '
                         'supply;; blockchain;; type;; price;; method;; duration;; specific_buyer;; '
                         'quantity;; nft_url')
 
             else: # Otherwise read the existing file
-                items = Reader(self.save_file).file
+                items = Reader(self.save_verified_file).file
                 self.verified = list(map(lambda item: str(item.split(';; ')[1]), items))
-                print(f'You have already verified {len(self.verified)} of {len(self.file)} uploads. \nIf you are not continuing a prior verification please remove:\n{self.save_file}\n')
+                print(f'You have already verified {len(self.verified)} of {len(self.file)} NFTs.\n')
+
 
     """ Get data
     * Gets the NFT data
@@ -305,17 +322,31 @@ class Structure:
     - url: The new NFT url
     - data: The existing NFT data
     """
-    def save_nft(self, url, data) -> None:
-        # Note: only CSV file will be created.
-        with open(self.save_file, 'a+', encoding='utf-8') as file:
-            modified_description = data.description.replace('\n', '_new_line_')
-            file.write(f'\n{data.file_path};; {data.nft_name};; {data.link};; {modified_description};; '
-                f'{data.collection};; {data.properties};; {data.levels};; {data.stats};; '
-                f'{data.unlockable_content};; {data.explicit_and_sensitive_content};; {data.supply};; '
-                f'{data.blockchain};; {data.type};; {data.price};; {data.method};; {data.duration};; '
-                f'{data.specific_buyer};; {data.quantity};; {url}')
+    def save_nft(self, action: int, url, data) -> None:
 
-        print(f'{green}| Data saved!') # Save completed
+        # Get the right save file
+        save_file = self.save_uploaded_file
+        if action is 2: 
+            save_file = self.save_verified_file
+        elif not action is 1:
+            exit(f'Trying to save with the wrong action: {action}.  URL: {url}')
+
+        print(save_file)
+
+        # Note: only CSV file will be created.
+        try:
+            with open(save_file, 'a+', encoding='utf-8') as file:
+                modified_description = data.description.replace('\n', '_new_line_')
+                file.write(f'\n{data.file_path};; {data.nft_name};; {data.link};; {modified_description};; '
+                    f'{data.collection};; {data.properties};; {data.levels};; {data.stats};; '
+                    f'{data.unlockable_content};; {data.explicit_and_sensitive_content};; {data.supply};; '
+                    f'{data.blockchain};; {data.type};; {data.price};; {data.method};; {data.duration};; '
+                    f'{data.specific_buyer};; {data.quantity};; {url}')
+
+            print(f'{green}| Data saved!') # Save completed
+
+        except Exception: # Save file error
+            exit(f'Could not safe NFT {data.nft_name}. With URL: {url}')
 
 
 """ Webdriveer
@@ -804,21 +835,42 @@ class OpenSea:
             # Verify upload
             WDW(web.driver, 2400).until(lambda _: web.driver.current_url != self.create_url + '?enable_supply=true')
             print(f'{green}| Uploaded.{reset}')
-            if 2 not in structure.action:  # Save the data for future upload.
-                structure.save_nft(web.driver.current_url, structure)
+
+            # Save for continued uploads
+            structure.save_nft(1, web.driver.current_url, structure)
+
             return True  # If it perfectly worked.
         except Exception as error:  # An element is not reachable.
             print(f'{red}An error occured. {error}')
             return False  # If it failed.
 
+    def opensea_check_upload(self, number: int) -> None:
+        print(f'\nChecking NFT upload n°{number}/{len(structure.file)}.')
+
+        # Go to the edit url
+        web.driver.get(structure.nft_url)  
+
+        # Check for NFT
+        try:
+            web.visible(f'//h1[@title="{structure.nft_name}"]')
+            print('| Exists.')
+            structure.save_nft(2, web.driver.current_url, structure)
+
+        except Exception:  # An error occured while looking for edit
+            print('Missing...')
+            structure.missing.append(structure.nft_name)
+
+        time.sleep(2)
+
     def opensea_sale(self, number: int, date: str = '%d-%m-%Y %H:%M') -> None:
         """Set a price for the NFT and sell it."""
         print(f'\nSale of the NFT n°{number}/{len(structure.file)}.', end=' ')
         try:  # Try to sell the NFT with different types and methods.
-            if 2 in structure.action and 1 not in structure.action:
+            if 3 in structure.action and 1 not in structure.action:
                 web.driver.get(structure.nft_url + '/sell')  # NFT sale page.
             else:  # The NFT has just been uploaded.
                 web.driver.get(web.driver.current_url + '/sell')  # Sale page.
+
             if not isinstance(structure.supply, int):
                 raise TE('The supply number must be an integer.')
             elif structure.supply == 1 and structure.blockchain == 'Ethereum':
@@ -940,6 +992,10 @@ class OpenSea:
             try:  # Wait until the NFT is listed.
                 web.visible('//header/h4')  # "Your NFT is listed!".
                 print(f'{green}NFT put up for sale.')
+
+                # Save for continued saves
+                structure.save_nft(3, structure.nft_url, structure)
+
             except Exception:  # An error occured while listing the NFT.
                 raise TE('The NFT is not listed.')
         except Exception as error:  # Failed, an error has occured.
@@ -958,7 +1014,7 @@ class OpenSea:
 
             # Check for NFT
             try:
-                WDW(web.driver, 2).until(EC.visibility_of_element_located((By.XPATH, edit_button)))
+                WDW(web.driver, 10).until(EC.visibility_of_element_located((By.XPATH, edit_button)))
             except Exception:  # An error occured while looking for edit
                 raise TE('-NFT does not exist or did not load')
 
@@ -973,24 +1029,6 @@ class OpenSea:
         except Exception as error: # Faled, an error has occured
             print(f'{red}| Counld not remove the NFT. {error}')
 
-    def opensea_check_upload(self, number: int) -> None:
-        print(f'\nChecking NFT upload n°{number}/{len(structure.file)}.')
-
-        # Go to the edit url
-        web.driver.get(structure.nft_url)  
-
-        # Check for NFT
-        edit_button = '//a[contains(text(), "Edit")]' # The edit element
-        try:
-            WDW(web.driver, 10).until(EC.visibility_of_element_located((By.XPATH, edit_button)))
-            print('| Exists.')
-            structure.save_nft(web.driver.current_url, structure)
-
-        except Exception:  # An error occured while looking for edit
-            print('Missing...')
-            structure.missing.append(structure.nft_name)
-
-        time.sleep(2)
 
 # App Utilities
 # ---------------------------------------------
@@ -1029,17 +1067,17 @@ def perform_action() -> list:
     while True:
         [print(string) for string in [
             f'{yellow}\nChoose an action to perform:{reset}',
-            '1 - Upload and Sell NFTs',
-            '2 - Upload NFTs only', 
-            '3 - Sell NFTs only',
-            '4 - Delete exsiting NFTs',
-            '5 - Check uploads']]
+            '1 - Upload, Validate and Sell NFTs',
+            '2 - Upload NFTs', 
+            '3 - Verify NFTs',
+            '4 - Sell NFTs',
+            '5 - Delete NFTs']]
         number = input('Action number: ')
 
         # Check if answer is a number.
         if number.isdigit():  
             if int(number) > 0 and int(number) < 6:
-                return [[1, 2,], [1], [2], [3], [4]][int(number) - 1]
+                return [[1, 2, 3], [1], [2], [3], [4]][int(number) - 1]
 
         print(f'{red}You must choose an option from the list.')
         return perform_action()
@@ -1169,29 +1207,48 @@ if __name__ == '__main__':
     for nft_number in range(reader.lenght_file):
         structure.get_data(nft_number)  # Structure the data of the NFT.
 
-        # Move on to the next NFT if it has alraedy been completed
-        if 1 in action and structure.nft_name in structure.completed:
-            print(f'NFT n°{nft_number + 1} has alraedy been uploaded.')
-        elif 4 in action and structure.nft_name in structure.verified:
-            print(f'NFT n°{nft_number + 1} has alraedy been verified.')
-        else:
-            upload = None  # Prevent Undefined value error.
-            if 1 in action:  # 1 = Upload. If user wants to upload the NFT.
+        # Check to upload
+        upload = None  # Prevent Undefined value error.
+        if 1 in action:
+            if structure.nft_name in structure.uploaded:
+                print(f'NFT n°{nft_number + 1} has alraedy been uploaded.')
+            else:
                 upload = opensea.opensea_upload(nft_number + 1)  # Upload the NFT.
-            if 2 in action:  # 2 - Sale. If user wants to sell the NFT.
-                if 1 in action and not upload:  # Do not upload the NFT because of
-                    continue  # a user choice or a failure of the upload.
-                elif isinstance(structure.price, int) or \
-                        isinstance(structure.price, float):
-                    if structure.price > 0:  # If price has been defined.
-                        opensea.opensea_sale(nft_number + 1)  # Sell NFT.
-            if 3 in action:  # 4 - Delete.  Delete NFTS from Opensea.
-                opensea.opensea_remove(nft_number + 1)  # Remove the NFT
-            if 4 in action:  # 5 - check existance
+
+        # Check to verify
+        if 2 in action:
+            if structure.nft_name in structure.verified:
+                print(f'NFT n°{nft_number + 1} has alraedy been verified.')
+            else:
                 opensea.opensea_check_upload(nft_number + 1)
 
-    if 4 in action:
-        print(structure.missing)
+        # # Move on to the next NFT if it has alraedy been completed
+        # if 1 in action and structure.nft_name in structure.completed:
+        #     print(f'NFT n°{nft_number + 1} has alraedy been uploaded.')
+        # elif 2 in action and structure.nft_name in structure.verified:
+        #     print(f'NFT n°{nft_number + 1} has alraedy been verified.')
+        # else:
+        #     upload = None  # Prevent Undefined value error.
+        #     if 1 in action:  # 1 = Upload. If user wants to upload the NFT.
+        #         upload = opensea.opensea_upload(nft_number + 1)  # Upload the NFT.
+        #     if 2 in action:  # 2 - Sale. If user wants to sell the NFT.
+        #         if 1 in action and not upload:  # Do not upload the NFT because of
+        #             continue  # a user choice or a failure of the upload.
+        #         elif isinstance(structure.price, int) or \
+        #                 isinstance(structure.price, float):
+        #             if structure.price > 0:  # If price has been defined.
+        #                 opensea.opensea_sale(nft_number + 1)  # Sell NFT.
+        #     if 3 in action:  # 4 - Delete.  Delete NFTS from Opensea.
+        #         opensea.opensea_remove(nft_number + 1)  # Remove the NFT
+        #     if 4 in action:  # 5 - check existance
+        #         opensea.opensea_check_upload(nft_number + 1)
+
+    # Pring out missing uploaded NFTs from varification
+    if 2 in action:
+        if len(structure.missing) > 0:
+            print(f'\nMissing uploads: {structure.missing}')
+        else:
+            print('\nNo missing uploads!')
 
     web.driver.quit()  # Stop the webdriver.
-    print(f'\n{green}All done! Your NFTs have been taken care of.')
+    print(f'\n{green}All done! Your NFTs have been taken care of.\n')
