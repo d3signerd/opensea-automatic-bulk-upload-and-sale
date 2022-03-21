@@ -1057,6 +1057,8 @@ class OpenSea:
                 # Save for continued saves
                 structure.save_nft(structure.sale_file, structure)
 
+                # Sleep for just a second
+
             except Exception:  # An error occured while listing the NFT.
                 raise TE('The NFT is not listed.')
 
