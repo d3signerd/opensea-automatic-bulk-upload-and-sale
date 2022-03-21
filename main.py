@@ -35,6 +35,10 @@ import os
 import time
 
 
+""" Constants """
+date_format = '%d-%m-%Y %H:%M'
+
+
 """Colorama module constants."""
 # This module may not work under MacOS.
 init(convert=True, autoreset=True)  # Init the Colorama module.
@@ -118,63 +122,98 @@ class Structure:
         self.sold = []
 
         # File name constants
-        uploaded = "uploaded"
-        verified = "verified"
-        sold = "sold"
+        uploaded_suffix = "uploaded"
+        verified_suffix = "verified"
+        sale_suffix = "sale"
             
         # Record uploads
         if 1 in self.action:
             # Check for the right files.
             # Do not allow uploads from uploaded, verified, or sold.
-            if uploaded in reader.path or verified in reader.path or sold in reader.path:
-                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the original data JSON file that does not contain "{uploaded}", "{verified}" or "{sold}".\n')
+            if uploaded_suffix in reader.path or verified_suffix in reader.path or sale_suffix in reader.path:
+                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the original data file that does not contain "{uploaded_suffix}", "{verified_suffix}" or "{sale_suffix}".\n')
 
             # Construct the save file
             file_path = os.path.splitext(reader.path)[0]
-            self.save_uploaded_file = f'{file_path}_{uploaded}.csv'
+            self.uploaded_file = f'{file_path}_{uploaded_suffix}.csv'
             
             # Check to see if the file exists first before creating it
             # This is useful if continuing an existing upload of large collections
-            if not os.path.exists(self.save_uploaded_file):
+            if not os.path.exists(self.uploaded_file):
                 print('Creating uploaded file.')
 
-                with open(self.save_uploaded_file, 'a+', encoding='utf-8') as file:
+                with open(self.uploaded_file, 'a+', encoding='utf-8') as file:
                     file.write('file_path;; nft_name;; link;; description;; collection;; properties;; '
                         'levels;; stats;; unlockable_content;; explicit_and_sensitive_content;; '
                         'supply;; blockchain;; type;; price;; method;; duration;; specific_buyer;; '
                         'quantity;; nft_url')
 
             else: # Otherwise read the existing file
-                items = Reader(self.save_uploaded_file).file
+                items = Reader(self.uploaded_file).file
                 self.uploaded = list(map(lambda item: str(item.split(';; ')[1]), items))
-                print(f'You have already uploaded {len(self.uploaded)} of {len(self.file)} NFTs.\n')
+                print(f'You have already uploaded {len(self.uploaded)} of {len(self.file)} NFTs.')
 
         # Record verified
-        elif 2 in self.action:
+        if 2 in self.action:
             # Check for the right files.
             # Do not allow uploads from uploaded, verified, or sold.
-            if not uploaded in reader.path:
-                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{uploaded}" data JSON file.\n')
+            if not 1 in self.action and not uploaded_suffix in reader.path:
+                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{uploaded_suffix}" data file.\n')
 
-            file_suffix = f'{verified}.csv'
+            # Construct the save file
+            file_suffix = f'{verified_suffix}.csv'
             file_path = os.path.splitext(reader.path)[0]
-            self.save_verified_file = file_path.replace(f'{uploaded}', file_suffix)
+            if 1 in self.action:
+                self.verified_file = f'{file_path}_{file_suffix}'
+            else:
+                self.verified_file = file_path.replace(f'{uploaded_suffix}', file_suffix)
 
             # Check to see if the file exists first before creating it
-            # This is useful if continuing an existing upload of large collections
-            if not os.path.exists(self.save_verified_file):
+            # This is useful if continuing an existing verification of large collections
+            if not os.path.exists(self.verified_file):
                 print('Creating verified file.')
 
-                with open(self.save_verified_file, 'a+', encoding='utf-8') as file:
+                with open(self.verified_file, 'a+', encoding='utf-8') as file:
                     file.write('file_path;; nft_name;; link;; description;; collection;; properties;; '
                         'levels;; stats;; unlockable_content;; explicit_and_sensitive_content;; '
                         'supply;; blockchain;; type;; price;; method;; duration;; specific_buyer;; '
                         'quantity;; nft_url')
 
             else: # Otherwise read the existing file
-                items = Reader(self.save_verified_file).file
+                items = Reader(self.verified_file).file
                 self.verified = list(map(lambda item: str(item.split(';; ')[1]), items))
-                print(f'You have already verified {len(self.verified)} of {len(self.file)} NFTs.\n')
+                print(f'You have already verified {len(self.verified)} of {len(self.file)} NFTs.')
+
+        # Sell
+        if 3 in self.action:
+            # Check for the right files.
+            # Do not allow uploads from uploaded, verified, or sold.
+            if not 1 in self.action and not verified_suffix in reader.path:
+                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{verified_suffix}" data file.\n')
+
+            # Construct the save file
+            file_suffix = f'{sale_suffix}.csv'
+            file_path = os.path.splitext(reader.path)[0]
+            if 1 in self.action:
+                self.sale_file = f'{file_path}_{file_suffix}'
+            else:
+                self.sale_file = file_path.replace(f'{verified_suffix}', file_suffix)
+
+            # Check to see if the file exists first before creating it
+            # This is useful if continuing an existing sale of large collections
+            if not os.path.exists(self.sale_file):
+                print('Creating sold file.')
+
+                with open(self.sale_file, 'a+', encoding='utf-8') as file:
+                    file.write('file_path;; nft_name;; link;; description;; collection;; properties;; '
+                        'levels;; stats;; unlockable_content;; explicit_and_sensitive_content;; '
+                        'supply;; blockchain;; type;; price;; method;; duration;; specific_buyer;; '
+                        'quantity;; nft_url;; sale_date')
+
+            else: # Otherwise read the existing file
+                items = Reader(self.sale_file).file
+                self.sold = list(map(lambda item: str(item.split(';; ')[1]), items))
+                print(f'You have already sold {len(self.sold)} of {len(self.file)} NFTs.')
 
 
     """ Get data
@@ -301,6 +340,12 @@ class Structure:
         self.quantity: int = nft_data[17]
         self.nft_url: str = str(nft_data[18])
 
+        # Check for sale date
+        if len(nft_data) >= 20:
+            self.sale_date: str = str(nft_data[19])
+        else:
+            self.sale_date: ""
+
     """ Is empty
     * Checks if the dictionary is empty
     @Params:
@@ -319,34 +364,29 @@ class Structure:
     """ Save nft
     * Saves the NFT data (Mainly the new NFT URL) as an uploaded list
     @Params:
-    - url: The new NFT url
+    - save_file: The file to save
     - data: The existing NFT data
     """
-    def save_nft(self, action: int, url, data) -> None:
+    def save_nft(self, save_file, data) -> None:
+        with open(save_file, 'a+', encoding='utf-8') as file:
+            modified_description = data.description.replace('\n', '_new_line_')
+            file_data = f'\n{data.file_path};; {data.nft_name};; {data.link};; {modified_description};; '\
+                f'{data.collection};; {data.properties};; {data.levels};; {data.stats};; '\
+                f'{data.unlockable_content};; {data.explicit_and_sensitive_content};; {data.supply};; '\
+                f'{data.blockchain};; {data.type};; {data.price};; {data.method};; {data.duration};; '\
+                f'{data.specific_buyer};; {data.quantity};; {data.nft_url}'
 
-        # Get the right save file
-        save_file = self.save_uploaded_file
-        if action is 2: 
-            save_file = self.save_verified_file
-        elif not action is 1:
-            exit(f'Trying to save with the wrong action: {action}.  URL: {url}')
+            # Check to add sale_date
+            if len(data.sale_date) > 0:
+                file_data = f'{file_data};; {data.sale_date}'
+                print(f'| Sale Date: {data.sale_date}')
 
-        print(save_file)
+            else:
+                print(f'Sale date attribute is not there: {data}')
 
-        # Note: only CSV file will be created.
-        try:
-            with open(save_file, 'a+', encoding='utf-8') as file:
-                modified_description = data.description.replace('\n', '_new_line_')
-                file.write(f'\n{data.file_path};; {data.nft_name};; {data.link};; {modified_description};; '
-                    f'{data.collection};; {data.properties};; {data.levels};; {data.stats};; '
-                    f'{data.unlockable_content};; {data.explicit_and_sensitive_content};; {data.supply};; '
-                    f'{data.blockchain};; {data.type};; {data.price};; {data.method};; {data.duration};; '
-                    f'{data.specific_buyer};; {data.quantity};; {url}')
+            file.write(file_data)
 
-            print(f'{green}| Data saved!') # Save completed
-
-        except Exception: # Save file error
-            exit(f'Could not safe NFT {data.nft_name}. With URL: {url}')
+        print(f'{green}| Data saved!') # Save completed
 
 
 """ Webdriveer
@@ -491,7 +531,7 @@ class OpenSea:
     """
     def coinbase_login(self) -> None:
         try: 
-            print('Login to Coinbase.', end=' ')
+            print('\nLogin to Coinbase.', end=' ')
             web.window_handles(0) # Switch to the Coinbase extension tab.
             web.driver.refresh() # Reload the page to prevent a blank page.
             web.clickable('//*[@data-testid="btn-import-existing-wallet"]') # Click on the "I have a wallet" button.
@@ -834,10 +874,13 @@ class OpenSea:
 
             # Verify upload
             WDW(web.driver, 2400).until(lambda _: web.driver.current_url != self.create_url + '?enable_supply=true')
-            print(f'{green}| Uploaded.{reset}')
+            print(f'{green}| Uploaded{reset}')
+
+            # Set the new structure nft_url
+            structure.nft_url = web.driver.current_url
 
             # Save for continued uploads
-            structure.save_nft(1, web.driver.current_url, structure)
+            structure.save_nft(structure.uploaded_file, structure)
 
             return True  # If it perfectly worked.
         except Exception as error:  # An element is not reachable.
@@ -845,7 +888,10 @@ class OpenSea:
             return False  # If it failed.
 
     def opensea_check_upload(self, number: int) -> None:
-        print(f'\nChecking NFT upload n°{number}/{len(structure.file)}.')
+        if not 1 in structure.action:
+            print(f'\nChecking NFT upload n°{number}/{len(structure.file)}. -{structure.nft_name}')
+        else:
+            print('| Checking upload')
 
         # Go to the edit url
         web.driver.get(structure.nft_url)  
@@ -854,152 +900,168 @@ class OpenSea:
         try:
             web.visible(f'//h1[@title="{structure.nft_name}"]')
             print('| Exists.')
-            structure.save_nft(2, web.driver.current_url, structure)
+            structure.save_nft(structure.verified_file, structure)
 
         except Exception:  # An error occured while looking for edit
-            print('Missing...')
+            print('| Missing...')
             structure.missing.append(structure.nft_name)
 
         time.sleep(2)
 
     def opensea_sale(self, number: int, date: str = '%d-%m-%Y %H:%M') -> None:
-        """Set a price for the NFT and sell it."""
-        print(f'\nSale of the NFT n°{number}/{len(structure.file)}.', end=' ')
-        try:  # Try to sell the NFT with different types and methods.
-            if 3 in structure.action and 1 not in structure.action:
-                web.driver.get(structure.nft_url + '/sell')  # NFT sale page.
-            else:  # The NFT has just been uploaded.
-                web.driver.get(web.driver.current_url + '/sell')  # Sale page.
+        if not 1 in structure.action:
+            print(f'\nSale of the NFT n°{number}/{len(structure.file)}. -{structure.nft_name}')
+        else:
+            print('| Selling')
 
-            if not isinstance(structure.supply, int):
+        try:  # Try to sell the NFT with different types and methods.
+            # Go to the sell URL
+            web.driver.get(structure.nft_url + '/sell')
+
+            # Make sure there is a supply count
+            if not isinstance(structure.supply, int): 
                 raise TE('The supply number must be an integer.')
+
+            # Continue with the sale
             elif structure.supply == 1 and structure.blockchain == 'Ethereum':
-                if not isinstance(structure.price, int) and not \
-                        isinstance(structure.price, float):
+
+                # Check for price value type
+                if not isinstance(structure.price, int) and not isinstance(structure.price, float):
                     raise TE('The price must be an integer or a float.')
-                if 'Timed' in str(structure.type):  # Timed Auction.
-                    # Click on the "Timed Auction" button.
+
+                # Timed auction
+                if 'Timed' in str(structure.type):
                     web.clickable('//i[@value="timelapse"]/../..')
+
+                    # Check for sale method
                     if isinstance(structure.method, list):  # If it's a list.
+
+                        # Check for more sale options
                         if len(structure.method) == 2:  # [method, price]
-                            if not isinstance(structure.method[1], int) and \
-                                    not isinstance(structure.method[1], float):
+
+                            # Check for method price types
+                            if not isinstance(structure.method[1], int) and not isinstance(structure.method[1], float):
                                 raise TE('Prices must be integer or float.')
-                            if 'declining' in str(structure.method[0]):
-                                web.clickable(  # Click on the method button.
-                                    '//*[@id="main"]/div/div/div[3]/div/div[2]'
-                                    '/div/div[1]/form/div[2]/div/div[2]')
-                                # Click on the "Sell with declining price"
-                                web.clickable('//*[@role="tooltip"]'  # button.
-                                              '/div/div/ul/li/button')
+
+                            if 'declining' in str(structure.method[0]): # Declining price
+                                web.clickable('//*[@id="main"]/div/div/div[3]/div/div[2]/div/div[1]/form/div[2]/div/div[2]')
+                                web.clickable('//*[@role="tooltip"]/div/div/ul/li/button')
+
+                                # Make sure the the starting price is higher than the ending price
                                 if structure.method[1] < structure.price:
-                                    web.send_keys(  # Input the ending price.
-                                        '//*[@name="endingPrice"]', format(
-                                            structure.method[1], '.8f'))
-                                else:  # Ending price is higher than the price.
-                                    raise TE('The ending price must be higher'
-                                             ' than the starting price.')
-                            elif 'highest' in str(structure.method[0]):
+                                    web.send_keys('//*[@name="endingPrice"]', format(structure.method[1], '.8f'))
+                                else:  # Ending price is higher than the startin price.
+                                    raise TE('The ending price must be higher than the starting price.')
+
+                            elif 'highest' in str(structure.method[0]): # Highest bidder
                                 if structure.method[1] > 0:  # Reserve price.
-                                    if structure.method[1] <= 1 or structure \
-                                            .method[1] < structure.price:
-                                        raise TE('Reserve price must be higher'
-                                                 'than 1 WETH and the price.')
-                                    # Click on the "More option" button.
-                                    web.clickable('//button[contains(@class, '
-                                                  '"more-options")]')
-                                    # Click on the "Include reserve price"
-                                    web.send_keys(  # toggle switch button.
-                                        '//*[@role="switch"]', Keys.ENTER)
-                                    web.send_keys(  # Input the reserve price.
-                                        '//*[@name="reservePrice"]',
-                                        format(structure.method[1], '.8f'))
+
+                                    # Reserve price must be higher than the starting price
+                                    if structure.method[1] <= 1 or structure.method[1] < structure.price:
+                                        raise TE('Reserve price must be higher than 1 WETH and the price.')
+
+                                    web.clickable('//button[contains(@class, "more-options")]')
+                                    web.send_keys('//*[@role="switch"]', Keys.ENTER)
+                                    web.send_keys('//*[@name="reservePrice"]', format(structure.method[1], '.8f'))
+
                             else:  # Not a Declining price or a Highest bidder.
                                 raise TE('Unknown method for Timed Auction.')
-            elif structure.supply > 1:  # Set a quantity of supply.
-                if isinstance(structure.quantity, int):  # Quantity is int.
+
+            # Set a quantity of supply.
+            elif structure.supply > 1: 
+
+                # Make sure value is int 
+                if isinstance(structure.quantity, int):
                     if structure.quantity <= structure.supply:
-                        web.send_keys('//*[@id="quantity"]',  # Supply to sell.
-                                      f'{Keys.BACKSPACE}{structure.quantity}')
+                        web.send_keys('//*[@id="quantity"]', f'{Keys.BACKSPACE}{structure.quantity}')
                     else:  # Quantity number is higher that supply number.
                         raise TE('Quantity must be less or equal to supplies.')
+
+            # Make sure the right blockchain types is selected
             elif structure.blockchain not in ('Ethereum', 'Polygon'):
                 raise TE('Blockchain is unknown or badly written.')
-            if 'Timed' not in str(structure.type):  # Set a specific buyer.
+
+            # Set a specific buyer.
+            if 'Timed' not in str(structure.type):  
                 if isinstance(structure.specific_buyer, list):
                     if len(structure.specific_buyer) == 2:
                         if isinstance(structure.specific_buyer[0], bool):
                             if structure.specific_buyer[0]:
-                                # Click on the "More option" button.
-                                web.clickable('//button[contains(@cla'
-                                              'ss, "more-options")]')
-                                # Click on "Reserve for specific buyer".
-                                web.send_keys('(//*[@role="switch"])[last()]',
-                                              Keys.ENTER)
-                                web.send_keys(  # Input a specific buyer.
-                                    '//*[@id="reservedBuyerAddressOrEns'
-                                    'Name"]', structure.specific_buyer[1])
+                                web.clickable('//button[contains(@class, "more-options")]')
+                                web.send_keys('(//*[@role="switch"])[last()]', Keys.ENTER)
+                                web.send_keys('//*[@id="reservedBuyerAddressOrEnsName"]', structure.specific_buyer[1])
+
             web.send_keys('//*[@name="price"]', format(structure.price, '.8f'))
-            if isinstance(structure.duration, str):  # Transform to a list.
+
+            # Durations
+            if isinstance(structure.duration, str):
                 structure.duration = [structure.duration]
             if isinstance(structure.duration, list):  # List of 1 or 2 values.
+
+                # Date range
                 if len(structure.duration) == 2:  # From {date} to {date}.
                     from datetime import datetime as dt  # Default import.
+
                     # Check if duration is less than 6 months.
-                    if (dt.strptime(structure.duration[1], date) -
-                            dt.strptime(structure.duration[0], date
-                                        )).total_seconds() / 60 > 262146:
+                    if (dt.strptime(structure.duration[1], date) - dt.strptime(structure.duration[0], date)).total_seconds() / 60 > 262146:
                         raise TE('Duration must be less than 6 months.')
+
                     # Check if starting date has passed.
-                    if dt.strptime(dt.strftime(dt.now(), date), date) \
-                            > dt.strptime(structure.duration[0], date):
+                    if dt.strptime(dt.strftime(dt.now(), date), date) > dt.strptime(structure.duration[0], date):
                         raise TE('Starting date has passed.')
+
                     # Split the date and the time.
                     start_date, start_time = structure.duration[0].split(' ')
                     end_date, end_time = structure.duration[1].split(' ')
-                    web.clickable('//*[@id="duration"]')  # Date button.
-                    web.visible(  # Scroll to the pop up frame of the date.
-                        '//*[@role="dialog"]').location_once_scrolled_into_view
-                    web.send_date('//*[@role="dialog"]'  # Ending date.
-                                  '/div[2]/div[2]/div/div[2]/input', end_date)
-                    web.send_date('//*[@role="dialog"]/'  # Starting date.
-                                  'div[2]/div[1]/div/div[2]/input', start_date)
-                    web.send_date('//*[@id="end-time"]', end_time)  # End date.
-                    web.send_date('//*[@id="start-time"]',  # Starting date +
-                                  f'{start_time}{Keys.ENTER}')  # close frame.
-                elif len(structure.duration) == 1:  # In {n} days/week/months.
-                    if structure.duration[0] == '':  # Duration not specified.
+                    web.clickable('//*[@id="duration"]')
+                    web.visible('//*[@role="dialog"]').location_once_scrolled_into_view
+                    web.send_date('//*[@role="dialog"]/div[2]/div[2]/div/div[2]/input', end_date)
+                    web.send_date('//*[@role="dialog"]/div[2]/div[1]/div/div[2]/input', start_date)
+                    web.send_date('//*[@id="end-time"]', end_time)
+                    web.send_date('//*[@id="start-time"]', f'{start_time}{Keys.ENTER}')
+
+                # Just a duration
+                elif len(structure.duration) == 1:
+                    if structure.duration[0] == '':
                         raise TE('Duration must be specified.')
-                    if web.visible('//*[@id="duration"]/div[2]').text \
-                            != structure.duration[0]:  # Not default.
-                        web.clickable('//*[@id="duration"]')  # Date button.
-                        web.clickable('//*[@role="dialog"]'  # Duration Range
-                                      '/div[1]/div/div[2]/input')  # sheet.
-                        web.clickable('//span[contains(text(), '   # Date span.
-                                      f'"{structure.duration[0]}")]/../..')
+                    if web.visible('//*[@id="duration"]/div[2]').text != structure.duration[0]:
+                        web.clickable('//*[@id="duration"]') 
+                        web.clickable('//*[@role="dialog"]/div[1]/div/div[2]/input')  # sheet.
+                        web.clickable(f'//span[contains(text(), "{structure.duration[0]}")]/../..')
                         web.send_keys('//*[@role="dialog"]', Keys.ENTER)
-            try:  # Click on the "Complete listing" (submit) button.
+
+            # Cpmlete listing
+            try:
                 web.clickable('//button[@type="submit"]')
             except Exception:  # An unknown error has occured.
                 raise TE('The submit button cannot be clicked.')
 
-            try:  # Polygon blockchain requires a click on a button.
-                self.sign_contract() # Sign the contract.
+            # Polygon blockchain requires a click on a button.
+            try:  
+                self.sign_contract()
             except Exception:  # No deposit or an unknown error occured.
-                raise TE('You need to make a deposit before proceeding'
-                         ' to listing of your NFTs.')
-            web.window_handles(1)  # Switch back to the OpenSea tab.
-            try:  # Wait until the NFT is listed.
+                raise TE('You need to make a deposit before proceeding to listing of your NFTs.')
+
+            # Switch back to the OpenSea tab.
+            web.window_handles(1)  
+
+            # Wait until the NFT is listed.
+            try:  
                 web.visible('//header/h4')  # "Your NFT is listed!".
-                print(f'{green}NFT put up for sale.')
+                print(f'{green}| Up for sale.')
+
+                # Update the sale date
+                from datetime import datetime as dt
+                structure.sale_date = dt.now().strftime(date_format)
 
                 # Save for continued saves
-                structure.save_nft(3, structure.nft_url, structure)
+                structure.save_nft(structure.sale_file, structure)
 
             except Exception:  # An error occured while listing the NFT.
                 raise TE('The NFT is not listed.')
+
         except Exception as error:  # Failed, an error has occured.
-            print(f'{red}NFT sale cancelled. {error}')
+            print(f'{red}| Sale cancelled. {error}')
 
     def opensea_remove(self, number: int) -> None:
         """Remove the NFT"""
@@ -1211,16 +1273,56 @@ if __name__ == '__main__':
         upload = None  # Prevent Undefined value error.
         if 1 in action:
             if structure.nft_name in structure.uploaded:
-                print(f'NFT n°{nft_number + 1} has alraedy been uploaded.')
+                prefix = f'NFT n°{nft_number + 1} -{structure.nft_name} has alraedy been uploaded'
+                if 2 in action:
+                    print(f'{prefix}', end=' ')
+                else:
+                    print(prefix,)
+
             else:
                 upload = opensea.opensea_upload(nft_number + 1)  # Upload the NFT.
 
         # Check to verify
         if 2 in action:
             if structure.nft_name in structure.verified:
-                print(f'NFT n°{nft_number + 1} has alraedy been verified.')
+                if 1 in action:
+                    if 3 in action:
+                        print(', verified', end=' ')
+                    else:
+                        print(', verified')
+                else:
+                    print(f'NFT n°{nft_number + 1} -{structure.nft_name} has alraedy been verified')
+
             else:
                 opensea.opensea_check_upload(nft_number + 1)
+
+        # Check to sell
+        if 3 in action:
+            # import datetime as dt
+            # now = dt.datetime.now()
+            # print(now)
+            # now_string = f'{now.strftime("%d-%m-%Y %H:%M")}'
+            # print(now_string)
+            # now_from_string = dt.datetime.strptime(now_string, '%d-%m-%Y %H:%M')
+            # print(now_from_string)
+
+            if structure.nft_name in structure.sold:
+                if 1 in action:
+                    print(', sold')
+                else:
+                    print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
+
+            else:
+                if (isinstance(structure.price, int) or isinstance(structure.price, float)) and \
+                    structure.price > 0:
+                    opensea.opensea_sale(nft_number + 1)
+                else:
+                    print('| price is incorrect')
+                    exit(f'Price for {structure.nft_name}: {structure.price} is incorrect')
+
+        # Check to delete
+        if 4 in action:
+            opensea.opensea_remove(nft_number + 1)
 
         # # Move on to the next NFT if it has alraedy been completed
         # if 1 in action and structure.nft_name in structure.completed:
