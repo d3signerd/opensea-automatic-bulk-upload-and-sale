@@ -130,7 +130,7 @@ class Structure:
         if 1 in self.action:
             # Check for the right files.
             # Do not allow uploads from uploaded, verified, or sold.
-            if uploaded_suffix in reader.path or verified_suffix in reader.path or sale_suffix in reader.path:
+            if any(x in reader.path for x in [uploaded_suffix, verified_suffix, sale_suffix]):
                 exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the original data file that does not contain "{uploaded_suffix}", "{verified_suffix}" or "{sale_suffix}".\n')
 
             # Construct the save file
@@ -187,18 +187,18 @@ class Structure:
         # Sell
         if 3 in self.action:
             # Check for the right files.
-            # Do not allow uploads from uploaded, verified, or sold.
+            # Do not allow uploads from uploaded, must be verified or sold.
             if not 1 in self.action and not any(x in reader.path for x in [verified_suffix, sale_suffix]):
-             # verified_suffix in reader.path and not sale_suffix in reader.path:
                 exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{verified_suffix}" or "{sale_suffix}" data files.\n')
 
             # Construct the save file
-            file_suffix = f'{sale_suffix}.csv'
+            file_suffix = f'{sale_suffix}'
             file_path = os.path.splitext(reader.path)[0]
             if 1 in self.action:
                 self.sale_file = f'{file_path}_{file_suffix}'
             else: 
                 self.sale_file = file_path.replace(f'{verified_suffix}', file_suffix).replace(f'{sale_suffix}', file_suffix)
+            self.sale_file = f'{self.sale_file}.csv'
 
             # Check to see if the file exists first before creating it
             # This is useful if continuing an existing sale of large collections
@@ -903,13 +903,53 @@ class OpenSea:
             print('| Exists.')
             structure.save_nft(structure.verified_file, structure)
 
-        except Exception:  # An error occured while looking for edit
-            print('| Missing...')
+        except Exception as error:  # An error occured while looking for edit
+            print(f'| Missing... Error {error}')
             structure.missing.append(structure.nft_name)
 
         time.sleep(2)
 
-    def opensea_sale(self, number: int, date: str = '%d-%m-%Y %H:%M') -> None:
+    def opensea_check_to_sell(self, number: int) -> None:
+        if structure.nft_name in structure.sold:
+            print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
+
+        else:
+            try:
+                # Jump to the NFT
+                web.driver.get(structure.nft_url)
+
+                sell_button = '//button[contains(text(), "Sell")]' # The cancel button
+                cancel_button = '//button[contains(text(), "Cancel")]' # The cancel button
+
+                # Check for sale button
+                if WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, sell_button))):
+                    opensea_sell(number)
+
+                # check for cancel
+                elif WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, cancel_button))):
+                    print(f'\nNFT n°{nft_number}/{len(structure.file)}. -{structure.nft_name} is alredy for sale')
+
+                    # Pause for a second
+                    time.sleep(1)
+
+            except Exception as error:
+                print(f'{red}Could not sell NFT n°{nft_number}/{len(structure.file)}. -{structure.nft_name}. Error:{error}')
+
+        
+# #                     try:
+# #     with open('months.txt', 'r') as fr:
+# #         lines = fr.readlines()
+ 
+# #         with open('months_3.txt', 'w') as fw:
+# #             for line in lines:
+               
+# #                 # find() returns -1
+# #                 # if no match found
+# #                 if line.find('ber') == -1:
+# #                     fw.write(line)
+# #     print("Deleted")
+
+    def opensea_sell(self, number: int, date: str = '%d-%m-%Y %H:%M') -> None:
 
         if not 1 in structure.action:
             print(f'\nSale of the NFT n°{number}/{len(structure.file)}. -{structure.nft_name}')
@@ -1067,45 +1107,6 @@ class OpenSea:
 
         except Exception as error:  # Failed, an error has occured.
             print(f'{red}| Sale cancelled. {error}')
-
-    def opensea_verify_sale(self, number: int) -> None:
-        if structure.nft_name in structure.sold:
-
-            try:
-                # Go to the sell URL
-                web.driver.get(structure.nft_url )
-
-                cancel_button = '//button[contains(text(), "Cancel")]' # The cancel button
-
-                if WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, cancel_button))):
-                    print('| Already up for sale')
-                    time.sleep(1)
-
-                else:
-                    print('| Sale has ended, post again')
-                    opensea_sale(nft_number)
-
-#                     try:
-#     with open('months.txt', 'r') as fr:
-#         lines = fr.readlines()
- 
-#         with open('months_3.txt', 'w') as fw:
-#             for line in lines:
-               
-#                 # find() returns -1
-#                 # if no match found
-#                 if line.find('ber') == -1:
-#                     fw.write(line)
-#     print("Deleted")
-# except:
-#     print("Oops! something error")
-
-            except Exception as error:
-                print(f'{red}| Could not verify sale of {structure.nft_name}. {error}')
-
-        else:
-            print(f'| NFT n°{nft_number + 1} -{structure.nft_name} has not been posted for sales')
-            opensea_sale(number)
 
     def opensea_remove(self, number: int) -> None:
         """Remove the NFT"""
@@ -1343,20 +1344,18 @@ if __name__ == '__main__':
         # Check to sell
         if 3 in action:
 
-            # Check for previous listing
-            if not 1 in structure.action and structure.nft_name in structure.sold:
-                print(f'\nChecking sale of the NFT n°{nft_number + 1}/{len(structure.file)}. -{structure.nft_name}')
-                opensea.opensea_verify_sale(nft_number + 1)
+            # Make sure the price is correct
+            if not (isinstance(structure.price, int) or isinstance(structure.price, float)) or structure.price <= 0:
+                exit(f'Price for {structure.nft_name}: {structure.price} is not the right value or type.')
 
-            # Handle new sales
-            elif (isinstance(structure.price, int) or isinstance(structure.price, float)) and \
-                structure.price > 0:
-                opensea.opensea_sale(nft_number + 1)
-
-            # Handle incorrect price   
+            # Skip to sell if option 1 -upload / verify / sell
+            if 1 in action:
+                opensea.opensea_sell(nft_number + 1)
             else:
-                print('| price is incorrect')
-                exit(f'Price for {structure.nft_name}: {structure.price} is incorrect')
+                if structure.nft_name in structure.sold:
+                    print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
+                else:
+                    opensea.opensea_sell(nft_number + 1) 
 
         # Check to delete
         if 4 in action:
