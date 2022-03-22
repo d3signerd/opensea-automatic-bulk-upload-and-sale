@@ -188,16 +188,17 @@ class Structure:
         if 3 in self.action:
             # Check for the right files.
             # Do not allow uploads from uploaded, verified, or sold.
-            if not 1 in self.action and not verified_suffix in reader.path:
-                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{verified_suffix}" data file.\n')
+            if not 1 in self.action and not any(x in reader.path for x in [verified_suffix, sale_suffix]):
+             # verified_suffix in reader.path and not sale_suffix in reader.path:
+                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{verified_suffix}" or "{sale_suffix}" data files.\n')
 
             # Construct the save file
             file_suffix = f'{sale_suffix}.csv'
             file_path = os.path.splitext(reader.path)[0]
             if 1 in self.action:
                 self.sale_file = f'{file_path}_{file_suffix}'
-            else:
-                self.sale_file = file_path.replace(f'{verified_suffix}', file_suffix)
+            else: 
+                self.sale_file = file_path.replace(f'{verified_suffix}', file_suffix).replace(f'{sale_suffix}', file_suffix)
 
             # Check to see if the file exists first before creating it
             # This is useful if continuing an existing sale of large collections
@@ -344,7 +345,7 @@ class Structure:
         if len(nft_data) >= 20:
             self.sale_date: str = str(nft_data[19])
         else:
-            self.sale_date: ""
+            self.sale_date: " "
 
     """ Is empty
     * Checks if the dictionary is empty
@@ -377,12 +378,12 @@ class Structure:
                 f'{data.specific_buyer};; {data.quantity};; {data.nft_url}'
 
             # Check to add sale_date
-            if len(data.sale_date) > 0:
-                file_data = f'{file_data};; {data.sale_date}'
-                print(f'| Sale Date: {data.sale_date}')
-
-            else:
-                print(f'Sale date attribute is not there: {data}')
+            if hasattr(data, 'sale_date'):
+                if data.sale_date:
+                    file_data = f'{file_data};; {data.sale_date}'
+                    print(f'| Sale Date: {data.sale_date}')
+                else:
+                    print('| Sale date was empty')
 
             file.write(file_data)
 
@@ -909,10 +910,11 @@ class OpenSea:
         time.sleep(2)
 
     def opensea_sale(self, number: int, date: str = '%d-%m-%Y %H:%M') -> None:
+
         if not 1 in structure.action:
             print(f'\nSale of the NFT n°{number}/{len(structure.file)}. -{structure.nft_name}')
         else:
-            print('| Selling')
+            print('| Posting for sale')
 
         try:  # Try to sell the NFT with different types and methods.
             # Go to the sell URL
@@ -1058,12 +1060,52 @@ class OpenSea:
                 structure.save_nft(structure.sale_file, structure)
 
                 # Sleep for just a second
+                time.sleep(1)
 
             except Exception:  # An error occured while listing the NFT.
                 raise TE('The NFT is not listed.')
 
         except Exception as error:  # Failed, an error has occured.
             print(f'{red}| Sale cancelled. {error}')
+
+    def opensea_verify_sale(self, number: int) -> None:
+        if structure.nft_name in structure.sold:
+
+            try:
+                # Go to the sell URL
+                web.driver.get(structure.nft_url )
+
+                cancel_button = '//button[contains(text(), "Cancel")]' # The cancel button
+
+                if WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, cancel_button))):
+                    print('| Already up for sale')
+                    time.sleep(1)
+
+                else:
+                    print('| Sale has ended, post again')
+                    opensea_sale(nft_number)
+
+#                     try:
+#     with open('months.txt', 'r') as fr:
+#         lines = fr.readlines()
+ 
+#         with open('months_3.txt', 'w') as fw:
+#             for line in lines:
+               
+#                 # find() returns -1
+#                 # if no match found
+#                 if line.find('ber') == -1:
+#                     fw.write(line)
+#     print("Deleted")
+# except:
+#     print("Oops! something error")
+
+            except Exception as error:
+                print(f'{red}| Could not verify sale of {structure.nft_name}. {error}')
+
+        else:
+            print(f'| NFT n°{nft_number + 1} -{structure.nft_name} has not been posted for sales')
+            opensea_sale(number)
 
     def opensea_remove(self, number: int) -> None:
         """Remove the NFT"""
@@ -1134,7 +1176,7 @@ def perform_action() -> list:
             '1 - Upload, Validate and Sell NFTs',
             '2 - Upload NFTs', 
             '3 - Verify NFTs',
-            '4 - Sell NFTs',
+            '4 - Sell / Re-Sell NFTs',
             '5 - Delete NFTs']]
         number = input('Action number: ')
 
@@ -1300,52 +1342,25 @@ if __name__ == '__main__':
 
         # Check to sell
         if 3 in action:
-            # import datetime as dt
-            # now = dt.datetime.now()
-            # print(now)
-            # now_string = f'{now.strftime("%d-%m-%Y %H:%M")}'
-            # print(now_string)
-            # now_from_string = dt.datetime.strptime(now_string, '%d-%m-%Y %H:%M')
-            # print(now_from_string)
 
-            if structure.nft_name in structure.sold:
-                if 1 in action:
-                    print(', sold')
-                else:
-                    print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
+            # Check for previous listing
+            if not 1 in structure.action and structure.nft_name in structure.sold:
+                print(f'\nChecking sale of the NFT n°{nft_number + 1}/{len(structure.file)}. -{structure.nft_name}')
+                opensea.opensea_verify_sale(nft_number + 1)
 
+            # Handle new sales
+            elif (isinstance(structure.price, int) or isinstance(structure.price, float)) and \
+                structure.price > 0:
+                opensea.opensea_sale(nft_number + 1)
+
+            # Handle incorrect price   
             else:
-                if (isinstance(structure.price, int) or isinstance(structure.price, float)) and \
-                    structure.price > 0:
-                    opensea.opensea_sale(nft_number + 1)
-                else:
-                    print('| price is incorrect')
-                    exit(f'Price for {structure.nft_name}: {structure.price} is incorrect')
+                print('| price is incorrect')
+                exit(f'Price for {structure.nft_name}: {structure.price} is incorrect')
 
         # Check to delete
         if 4 in action:
             opensea.opensea_remove(nft_number + 1)
-
-        # # Move on to the next NFT if it has alraedy been completed
-        # if 1 in action and structure.nft_name in structure.completed:
-        #     print(f'NFT n°{nft_number + 1} has alraedy been uploaded.')
-        # elif 2 in action and structure.nft_name in structure.verified:
-        #     print(f'NFT n°{nft_number + 1} has alraedy been verified.')
-        # else:
-        #     upload = None  # Prevent Undefined value error.
-        #     if 1 in action:  # 1 = Upload. If user wants to upload the NFT.
-        #         upload = opensea.opensea_upload(nft_number + 1)  # Upload the NFT.
-        #     if 2 in action:  # 2 - Sale. If user wants to sell the NFT.
-        #         if 1 in action and not upload:  # Do not upload the NFT because of
-        #             continue  # a user choice or a failure of the upload.
-        #         elif isinstance(structure.price, int) or \
-        #                 isinstance(structure.price, float):
-        #             if structure.price > 0:  # If price has been defined.
-        #                 opensea.opensea_sale(nft_number + 1)  # Sell NFT.
-        #     if 3 in action:  # 4 - Delete.  Delete NFTS from Opensea.
-        #         opensea.opensea_remove(nft_number + 1)  # Remove the NFT
-        #     if 4 in action:  # 5 - check existance
-        #         opensea.opensea_check_upload(nft_number + 1)
 
     # Pring out missing uploaded NFTs from varification
     if 2 in action:
