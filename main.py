@@ -926,9 +926,9 @@ class OpenSea:
     @Params:
     - number: The item index to sell
     """
-    def opensea_sell(self, number: int, date: str = '%d-%m-%Y %H:%M') -> None:
+    def opensea_sell(self, number: int, date: str = date_format) -> None:
 
-        if not 1 in structure.action:
+        if not 1 in structure.action and not 4 in structure.action:
             print(f'\nSale of the NFT n°{number}/{len(structure.file)}. -{structure.nft_name}')
         else:
             print('| Posting for sale')
@@ -1081,8 +1081,8 @@ class OpenSea:
                 # Sleep for just a second
                 time.sleep(1)
 
-            except Exception:  # An error occured while listing the NFT.
-                raise TE('The NFT is not listed.')
+            except Exception as error:  # An error occured while listing the NFT.
+                raise TE('The NFT is not listed. {error}')
 
         except Exception as error:  # Failed, an error has occured.
             print(f'{red}| Sale cancelled. {error}')
@@ -1096,53 +1096,49 @@ class OpenSea:
         print(f'\nVerifying sale of the NFT n°{number}/{len(structure.file)}. -{structure.nft_name}')
 
         try:
+
             # Jump to the NFT
             web.driver.get(structure.nft_url)
 
             cancel_button = '//button[contains(text(), "Cancel")]' # The cancel button
-            sell_nft_button = '//*[contains(text(), "Sell")]'
 
             # Check for cancel button meaning it is up for sale
-            if WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, cancel_button))):
+            try:
+                WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, cancel_button)))
                 print(f'| Still up for sale')
 
                 # Pause for a second
                 time.sleep(1)
 
-            # Check for sell button
-            elif WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, sell_nft_button))):
+            except Exception: # Remove sale data
                 print('| Sale has ended')
 
                 # Remove from sale list
                 try:
                     lines = []
 
-                    print('Trying to remove')
-
                     # Get the existing lines
                     with open(reader.path, 'r', encoding='utf-8') as file:
                         lines = file.readlines()
 
-                    print('Trying to rewrite')
-
                     # Rewrite the file
-                    with open(eader.path, 'w', encoding='utf-8') as file:
+                    with open(reader.path, 'w', encoding='utf-8') as file:
                         for line in enumerate(lines):
-                            if not structure.nft_name in line:
-                                file.write(line)
+                            nft_data = line[1]
+                            if not structure.nft_name in nft_data:
+                                file.write(nft_data)
 
-                except Exception:
-                    raise TE('Could not remove sale from file.')
+                    print('| Sale data removed')
+
+                except Exception as error:
+                    raise TE(f'Could not remove sale data. {error}')
 
                 # Sell
                 print('| Reposting for sale')
-
-            else:
-                raise TE('Could not verify sale or ready for resale.')
+                self.opensea_sell(number)
 
         except Exception as error:
             print(f'{red}| Could not verify sale of NFT -{structure.nft_name}. Error:{error}')
-            time.sleep(600)
 
     """ OpenSea remove
     * Removes the NFT from OpenSea
@@ -1257,15 +1253,16 @@ def data_file() -> str:
     """Read the data folder and extract JSON, CSV and XLSX files."""
     while True:
         files_list = []
+        path_sep = os.path.sep
 
         # Files in the data folder.
-        data_files = [glob(f'data/{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]
+        data_files = [glob(f'data{path_sep}{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]
         for files in sorted(data_files):
             for file in files:
                 files_list.append(file)
 
         # Files in the data sub folders
-        sub_folders = [glob(f'data/*/{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]
+        sub_folders = [glob(f'data{path_sep}*{path_sep}{extension}') for extension in ['*.json', '*.csv', '*.xlsx']]
         for files in sorted(sub_folders):
             for file in files:
                 if 'Templates' not in file:
@@ -1278,7 +1275,9 @@ def data_file() -> str:
         files_list = sorted(files_list)
         for file in files_list:
             file_number += 1
-            print(f'{file_number} -{os.path.abspath(file)}')
+            parent_dir = os.path.abspath(os.curdir) + f'{path_sep}data'
+            file_name = os.path.abspath(file).replace(parent_dir, '')
+            print(f'{file_number} -{file_name}')
 
         answer = input('File number: ')
 
@@ -1390,11 +1389,12 @@ if __name__ == '__main__':
             if not (isinstance(structure.price, int) or isinstance(structure.price, float)) or structure.price <= 0:
                 exit(f'Price for {structure.nft_name}: {structure.price} is not the right value or type.')
 
-            # Skip to sell if option 1 -upload / verify / sell
-            if 1 in action and not structure.nft_name in structure.sold:
-                opensea.opensea_sell(nft_number + 1)
-            else:
+            # Skip if already in sold
+            if structure.nft_name in structure.sold:
                 print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
+            else:
+                opensea.opensea_sell(nft_number + 1)
+                
 
         # Check to validate sale
         if 4 in action:
