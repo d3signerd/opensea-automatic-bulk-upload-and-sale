@@ -216,6 +216,13 @@ class Structure:
                 self.sold = list(map(lambda item: str(item.split(';; ')[1]), items))
                 print(f'You have already sold {len(self.sold)} of {len(self.file)} NFTs.')
 
+        # Verify Sale
+        if 4 in self.action:
+            # Check for the right files.
+            # Do not allow uploads from uploaded, must be verified or sold.
+            if not sale_suffix in reader.path:
+                exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{sale_suffix}" data file.\n')
+
 
     """ Get data
     * Gets the NFT data
@@ -888,6 +895,11 @@ class OpenSea:
             print(f'{red}An error occured. {error}')
             return False  # If it failed.
 
+    """ OpenSea check upload
+    * Verifies the NFT has been uploaded to OpenSea
+    @Params:
+    - number: The item index to verify
+    """
     def opensea_check_upload(self, number: int) -> None:
         if not 1 in structure.action:
             print(f'\nChecking NFT upload n°{number}/{len(structure.file)}. -{structure.nft_name}')
@@ -909,46 +921,11 @@ class OpenSea:
 
         time.sleep(2)
 
-    def opensea_check_to_sell(self, number: int) -> None:
-        if structure.nft_name in structure.sold:
-            print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
-
-        else:
-            try:
-                # Jump to the NFT
-                web.driver.get(structure.nft_url)
-
-                sell_button = '//button[contains(text(), "Sell")]' # The cancel button
-                cancel_button = '//button[contains(text(), "Cancel")]' # The cancel button
-
-                # Check for sale button
-                if WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, sell_button))):
-                    opensea_sell(number)
-
-                # check for cancel
-                elif WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, cancel_button))):
-                    print(f'\nNFT n°{nft_number}/{len(structure.file)}. -{structure.nft_name} is alredy for sale')
-
-                    # Pause for a second
-                    time.sleep(1)
-
-            except Exception as error:
-                print(f'{red}Could not sell NFT n°{nft_number}/{len(structure.file)}. -{structure.nft_name}. Error:{error}')
-
-        
-# #                     try:
-# #     with open('months.txt', 'r') as fr:
-# #         lines = fr.readlines()
- 
-# #         with open('months_3.txt', 'w') as fw:
-# #             for line in lines:
-               
-# #                 # find() returns -1
-# #                 # if no match found
-# #                 if line.find('ber') == -1:
-# #                     fw.write(line)
-# #     print("Deleted")
-
+    """ OpenSea sell
+    * Posts the NFT for sale
+    @Params:
+    - number: The item index to sell
+    """
     def opensea_sell(self, number: int, date: str = '%d-%m-%Y %H:%M') -> None:
 
         if not 1 in structure.action:
@@ -957,8 +934,10 @@ class OpenSea:
             print('| Posting for sale')
 
         try:  # Try to sell the NFT with different types and methods.
-            # Go to the sell URL
+
+            # Go to the sell page
             web.driver.get(structure.nft_url + '/sell')
+
 
             # Make sure there is a supply count
             if not isinstance(structure.supply, int): 
@@ -1108,6 +1087,68 @@ class OpenSea:
         except Exception as error:  # Failed, an error has occured.
             print(f'{red}| Sale cancelled. {error}')
 
+    """ OpenSea check sale
+    * Verifies the NFT sale and reposts if sale is over
+    @Params:
+    - number: The item index to verify
+    """    
+    def opensea_check_sale(self, number: int) -> None:
+        print(f'\nVerifying sale of the NFT n°{number}/{len(structure.file)}. -{structure.nft_name}')
+
+        try:
+            # Jump to the NFT
+            web.driver.get(structure.nft_url)
+
+            cancel_button = '//button[contains(text(), "Cancel")]' # The cancel button
+            sell_nft_button = '//*[contains(text(), "Sell")]'
+
+            # Check for cancel button meaning it is up for sale
+            if WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, cancel_button))):
+                print(f'| Still up for sale')
+
+                # Pause for a second
+                time.sleep(1)
+
+            # Check for sell button
+            elif WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, sell_nft_button))):
+                print('| Sale has ended')
+
+                # Remove from sale list
+                try:
+                    lines = []
+
+                    print('Trying to remove')
+
+                    # Get the existing lines
+                    with open(reader.path, 'r', encoding='utf-8') as file:
+                        lines = file.readlines()
+
+                    print('Trying to rewrite')
+
+                    # Rewrite the file
+                    with open(eader.path, 'w', encoding='utf-8') as file:
+                        for line in enumerate(lines):
+                            if not structure.nft_name in line:
+                                file.write(line)
+
+                except Exception:
+                    raise TE('Could not remove sale from file.')
+
+                # Sell
+                print('| Reposting for sale')
+
+            else:
+                raise TE('Could not verify sale or ready for resale.')
+
+        except Exception as error:
+            print(f'{red}| Could not verify sale of NFT -{structure.nft_name}. Error:{error}')
+            time.sleep(600)
+
+    """ OpenSea remove
+    * Removes the NFT from OpenSea
+    @Params:
+    - number: The item index to remove
+    """ 
     def opensea_remove(self, number: int) -> None:
         """Remove the NFT"""
         print(f'\nDeleting NFT n°{number}/{len(structure.file)}.')
@@ -1176,15 +1217,16 @@ def perform_action() -> list:
             f'{yellow}\nChoose an action to perform:{reset}',
             '1 - Upload, Validate and Sell NFTs',
             '2 - Upload NFTs', 
-            '3 - Verify NFTs',
-            '4 - Sell / Re-Sell NFTs',
-            '5 - Delete NFTs']]
+            '3 - Verify Uploaded NFTs',
+            '4 - Sell / Re-Post NFTs',
+            '5 - Verify NFT Sales',
+            '6 - Delete NFTs']]
         number = input('Action number: ')
 
         # Check if answer is a number.
         if number.isdigit():  
-            if int(number) > 0 and int(number) < 6:
-                return [[1, 2, 3], [1], [2], [3], [4]][int(number) - 1]
+            if int(number) > 0 and int(number) < 7:
+                return [[1, 2, 3], [1], [2], [3], [4], [5]][int(number) - 1]
 
         print(f'{red}You must choose an option from the list.')
         return perform_action()
@@ -1349,16 +1391,17 @@ if __name__ == '__main__':
                 exit(f'Price for {structure.nft_name}: {structure.price} is not the right value or type.')
 
             # Skip to sell if option 1 -upload / verify / sell
-            if 1 in action:
+            if 1 in action and not structure.nft_name in structure.sold:
                 opensea.opensea_sell(nft_number + 1)
             else:
-                if structure.nft_name in structure.sold:
-                    print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
-                else:
-                    opensea.opensea_sell(nft_number + 1) 
+                print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
+
+        # Check to validate sale
+        if 4 in action:
+            opensea.opensea_check_sale(nft_number + 1)
 
         # Check to delete
-        if 4 in action:
+        if 5 in action:
             opensea.opensea_remove(nft_number + 1)
 
     # Pring out missing uploaded NFTs from varification
