@@ -349,10 +349,9 @@ class Structure:
         self.nft_url: str = str(nft_data[18])
 
         # Check for sale date
+        self.sale_date = None # Set it to nil first
         if len(nft_data) >= 20:
             self.sale_date: str = str(nft_data[19])
-        else:
-            self.sale_date: " "
 
     """ Is empty
     * Checks if the dictionary is empty
@@ -385,12 +384,9 @@ class Structure:
                 f'{data.specific_buyer};; {data.quantity};; {data.nft_url}'
 
             # Check to add sale_date
-            if hasattr(data, 'sale_date'):
-                if data.sale_date:
-                    file_data = f'{file_data};; {data.sale_date}'
-                    print(f'| Sale Date: {data.sale_date}')
-                else:
-                    print('| Sale date was empty')
+            if hasattr(data, 'sale_date') and not data.sale_date is None:
+                file_data = f'{file_data};; {data.sale_date}'
+                print(f'| Sale Date: {data.sale_date}')
 
             file.write(file_data)
 
