@@ -1210,7 +1210,7 @@ def perform_action() -> list:
             '1 - Upload, Validate and Sell NFTs',
             '2 - Upload NFTs', 
             '3 - Verify Uploaded NFTs',
-            '4 - Sell / Re-Post NFTs',
+            '4 - Sell',
             '5 - Verify NFT Sales',
             '6 - Delete NFTs']]
         number = input('Action number: ')
@@ -1394,6 +1394,18 @@ if __name__ == '__main__':
 
         # Check to validate sale
         if 4 in action:
+
+            from datetime import datetime as dt
+            sale_time = dt.strptime(structure.sale_date, date_format)
+
+            # Figure out the sale duraion end
+            if structure.duration == '1 day':
+            elif structure.duration == '3 days':
+            elif structure.duration == '7 days':
+            elif structure.duration == '1 month':
+            else:
+                exit('Not set up for this duration yet.')
+
             opensea.opensea_check_sale(nft_number + 1)
 
         # Check to delete
