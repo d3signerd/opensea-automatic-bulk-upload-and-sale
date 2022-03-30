@@ -223,6 +223,9 @@ class Structure:
             if not sale_suffix in reader.path:
                 exit(f'Error: Wrong metadata file used. -{reader.path}.\nPlease use the "{sale_suffix}" data file.\n')
 
+            # Make sure to set up the sale file path
+            self.sale_file = reader.path
+
 
     """ Get data
     * Gets the NFT data
@@ -376,17 +379,21 @@ class Structure:
     """
     def save_nft(self, save_file, data) -> None:
         with open(save_file, 'a+', encoding='utf-8') as file:
+
+            # Modify a few values for save
             modified_description = data.description.replace('\n', '_new_line_')
+            duration = data.duration[0] if isinstance(data.duration, list) else data.duration
+
             file_data = f'\n{data.file_path};; {data.nft_name};; {data.link};; {modified_description};; '\
-                f'{data.collection};; {data.properties};; {data.levels};; {data.stats};; '\
-                f'{data.unlockable_content};; {data.explicit_and_sensitive_content};; {data.supply};; '\
-                f'{data.blockchain};; {data.type};; {data.price};; {data.method};; {data.duration};; '\
-                f'{data.specific_buyer};; {data.quantity};; {data.nft_url}'
+                    f'{data.collection};; {data.properties};; {data.levels};; {data.stats};; '\
+                    f'{data.unlockable_content};; {data.explicit_and_sensitive_content};; {data.supply};; '\
+                    f'{data.blockchain};; {data.type};; {data.price};; {data.method};; {duration};; '\
+                    f'{data.specific_buyer};; {data.quantity};; {data.nft_url}'
 
             # Check to add sale_date
             if hasattr(data, 'sale_date') and not data.sale_date is None:
-                file_data = f'{file_data};; {data.sale_date}'
                 print(f'| Sale Date: {data.sale_date}')
+                file_data = f'{file_data};; {data.sale_date}'
 
             file.write(file_data)
 
@@ -1100,7 +1107,7 @@ class OpenSea:
 
             # Check for cancel button meaning it is up for sale
             try:
-                WDW(web.driver, 4).until(EC.visibility_of_element_located((By.XPATH, cancel_button)))
+                WDW(web.driver, 2).until(EC.visibility_of_element_located((By.XPATH, cancel_button)))
                 print(f'| Still up for sale')
 
                 # Pause for a second
@@ -1111,18 +1118,29 @@ class OpenSea:
 
                 # Remove from sale list
                 try:
-                    lines = []
+                    with open(reader.path, 'r+', encoding='utf-8') as file:
 
-                    # Get the existing lines
-                    with open(reader.path, 'r', encoding='utf-8') as file:
+                        # Get the content an sort
                         lines = file.readlines()
+                        header = lines.pop(0).strip() # Save the header before sorting
+                        lines.sort(key = lambda x: x.split(';; ').pop())
+                        lines.insert(0, header) # Add header back
 
-                    # Rewrite the file
-                    with open(reader.path, 'w', encoding='utf-8') as file:
+                        # Clean
+                        file.seek(0)
+                        file.truncate()
+                    
+                        # Rewrite the file
                         for line in enumerate(lines):
-                            nft_data = line[1]
-                            if not structure.nft_name in nft_data:
-                                file.write(nft_data)
+                            line_to_write = line[1].strip()
+
+                            # Add line breaks before each line but the header
+                            if not header in line_to_write:
+                                line_to_write = '\n' + line_to_write
+
+                            # Leave out the nft that is being deleted
+                            if not f'{structure.nft_name};' in line_to_write:
+                                file.write(line_to_write)
 
                     print('| Sale data removed')
 
@@ -1363,6 +1381,7 @@ if __name__ == '__main__':
 
             else:
                 upload = opensea.opensea_upload(nft_number + 1)  # Upload the NFT.
+                time.sleep(1) # Pause to prevent 404s
 
         # Check to verify
         if 2 in action:
@@ -1377,6 +1396,7 @@ if __name__ == '__main__':
 
             else:
                 opensea.opensea_check_upload(nft_number + 1)
+                time.sleep(1) # Pause to prevent 404s
 
         # Check to sell
         if 3 in action:
@@ -1390,23 +1410,30 @@ if __name__ == '__main__':
                 print(f'NFT n°{nft_number + 1} -{structure.nft_name} is already for sale')
             else:
                 opensea.opensea_sell(nft_number + 1)
+                time.sleep(1) # Pause to prevent 404s
                 
-
         # Check to validate sale
         if 4 in action:
-
-            from datetime import datetime as dt
-            sale_time = dt.strptime(structure.sale_date, date_format)
+            import datetime as dt
+            sale_time = dt.datetime.strptime(structure.sale_date, date_format)
+            now = dt.datetime.now()
 
             # Figure out the sale duraion end
-            if structure.duration == '1 day':
-            elif structure.duration == '3 days':
-            elif structure.duration == '7 days':
-            elif structure.duration == '1 month':
+            duration = structure.duration
+            if duration == '1 day':
+                end_time = sale_time + dt.timedelta(days=1, minutes=1)
+            elif duration == '3 days':
+                end_time = sale_time + dt.timedelta(days=3, minutes=1)
+            elif duration == '7 days':
+                end_time = sale_time + dt.timedelta(days=7, minutes=1)
             else:
-                exit('Not set up for this duration yet.')
+                print(f'This duration is missing for {duration} -{structure.nft_name}')
 
-            opensea.opensea_check_sale(nft_number + 1)
+            # Skip if already if not past sale time
+            if end_time > now:
+                print(f'NFT n°{nft_number + 1} -{structure.nft_name} is still for sale')
+            else:
+                opensea.opensea_check_sale(nft_number + 1)
 
         # Check to delete
         if 5 in action:
