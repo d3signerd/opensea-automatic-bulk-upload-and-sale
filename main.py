@@ -1070,8 +1070,28 @@ class OpenSea:
             web.window_handles(1)  
 
             # Wait until the NFT is listed.
-            try:  
-                web.visible('//header/h4')  # "Your NFT is listed!".
+            try:
+
+                # Check for sold modal
+                try:   
+                    web.visible('//header/h4')  # "Your NFT is listed!".
+                except Exception:
+                    raise TE('| Someting happened, the sale did not finish.')
+
+                # Verify for sale
+                try:
+                    web.driver.get(structure.nft_url)
+
+                    if 'declining' in str(structure.method[0]): # Declining price
+                        sale_text_check = '//div[contains(text(), "Current price")]'  
+                    elif 'highest' in str(structure.method[0]): # Highest bidder
+                        sale_text_check = '//div[contains(text(), "Minimum bid")]'  
+
+                    WDW(web.driver, 2).until(EC.visibility_of_element_located((By.XPATH, sale_text_check)))
+
+                except Exception:
+                    raise TE('| Item is not for sale')
+
                 print(f'{green}| Up for sale.')
 
                 # Update the sale date
@@ -1085,7 +1105,9 @@ class OpenSea:
                 time.sleep(1)
 
             except Exception as error:  # An error occured while listing the NFT.
-                raise TE('The NFT is not listed. {error}')
+                print(f'The NFT is not listed, try again. {error}')
+                self.opensea_sell(number)
+
 
         except Exception as error:  # Failed, an error has occured.
             print(f'{red}| Sale cancelled. {error}')
@@ -1103,11 +1125,15 @@ class OpenSea:
             # Jump to the NFT
             web.driver.get(structure.nft_url)
 
-            cancel_button = '//button[contains(text(), "Cancel")]' # The cancel button
-
-            # Check for cancel button meaning it is up for sale
+            # Check  for sale
             try:
-                WDW(web.driver, 2).until(EC.visibility_of_element_located((By.XPATH, cancel_button)))
+                if 'declining' in str(structure.method[0]): # Declining price
+                    sale_text_check = '//div[contains(text(), "Current price")]'  
+                elif 'highest' in str(structure.method[0]): # Highest bidder
+                    sale_text_check = '//div[contains(text(), "Minimum bid")]'  
+
+                WDW(web.driver, 2).until(EC.visibility_of_element_located((By.XPATH, sale_text_check)))
+
                 print(f'| Still up for sale')
 
                 # Pause for a second
@@ -1149,7 +1175,12 @@ class OpenSea:
 
                 # Sell
                 print('| Reposting for sale')
-                self.opensea_sell(number)
+                try:
+                    self.opensea_sell(number)
+                except Exception as error:
+                    print(f'| Could not repost for sale.. {error}')
+                    structure.save_nft(structure.sale_file, structure)
+                    print('| Data restored')
 
         except Exception as error:
             print(f'{red}| Could not verify sale of NFT -{structure.nft_name}. Error:{error}')
